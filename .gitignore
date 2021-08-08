@@ -1,0 +1,15 @@
+/bin
+/build
+/dist
+/venv
+/.idea
+/.vscode
+__pycache__
+*.egg-info
+*.egg
+**/.ipynb_checkpoints
+*.npz
+*.csv
+*.pdf
+*.pt
+*.DS_Store
