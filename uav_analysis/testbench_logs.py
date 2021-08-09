@@ -25,11 +25,14 @@ import torch
 import zipfile
 
 from uav_analysis.fdm_input import parse_fdm_input
-from constraint_prog.point_cloud import PointCloud
-from constraint_prog.func_approx import approximate
+from uav_analysis.func_approx import approximate
 
 
 def read_testbench_zip(filename: str) -> Dict:
+    """
+    Returns a dictionary containing all important data from a testbench
+    zip file.
+    """
     testbench_data = {
         'output.csv': None,   # List[Dict[str, str]]
         'flightdyn.inp': {},  # Dict[str, Dict]
@@ -56,8 +59,9 @@ def read_testbench_zip(filename: str) -> Dict:
     return testbench_data
 
 
-def extract_float_table(testbench_data: Dict, fields: List[str]) -> numpy.ndarray:
-    table = []
+def extract_tables(testbench_data: Dict, fields: List[str]) -> Dict[str, numpy.ndarray]:
+    result = {field: [] for field in fields}
+
     for entry in testbench_data['output.csv']:
         if entry['AnalysisError'] != 'False':
             continue
@@ -66,43 +70,35 @@ def extract_float_table(testbench_data: Dict, fields: List[str]) -> numpy.ndarra
 
         entry2 = testbench_data['flightdyn.inp'][entry['GUID']]
 
-        row = []
         for field in fields:
             if field in entry:
                 value = float(entry[field])
             elif field.startswith('aircraft/'):
-                field = field[field.find('/') + 1:]
-                try:
-                    value = entry2['aircraft'][field]
-                except KeyError:
-                    print("WARNING: unknown field", field)
+                field2 = field[field.find('/') + 1:]
+                value = entry2['aircraft'][field2]
             else:
-                print("WARNING: unknown field", field)
+                raise ValueError("Unknown field " + field)
 
-            row.append(value)
-        table.append(row)
+            result[field].append(value)
 
-    return numpy.array(table, dtype=numpy.float64)
+    return {key: numpy.array(val) for key, val in result.items()}
+
+
+def extract_table(testbench_data: Dict, field: str) -> numpy.ndarray:
+    result = extract_tables(testbench_data, [field])
+    return result[field]
 
 
 if __name__ == '__main__':
+    assert len(sys.argv) >= 2
     testbench_data = read_testbench_zip(sys.argv[1])
     # print(testbench_data['output.csv'][0])
     # print(testbench_data['flightdyn.inp'][testbench_data['output.csv'][0]['GUID']])
 
-    names = ['Length_0', 'Length_1', 'aircraft/mass',
-             'aircraft/x_cm', 'aircraft/y_cm', 'aircraft/z_cm',
-             'aircraft/x_fuse', 'aircraft/y_fuse', 'aircraft/z_fuse',
-             'aircraft/X_fuseuu', 'aircraft/Y_fusevv', 'aircraft/Z_fuseww',
-             'aircraft/Ixx', 'aircraft/Iyy', 'aircraft/Izz']
-    table = extract_float_table(testbench_data, names)
-    table = torch.tensor(table, dtype=torch.float32)
-    points = PointCloud(names, table)
-
     length_0 = sympy.Symbol('Length_0')
     length_1 = sympy.Symbol('Length_1')
 
-    param_a = sympy.Symbol('param_a')
+    param_a0 = sympy.Symbol('param_a')
 
     param_b0 = sympy.Symbol('param_b0')
     param_b1 = sympy.Symbol('param_b1')
@@ -116,9 +112,12 @@ if __name__ == '__main__':
     param_d2 = sympy.Symbol('param_d2')
     param_d3 = sympy.Symbol('param_d3')
 
-    func = param_a + param_b0 * length_0 + param_b1 * length_1 \
+    func = param_a0 + param_b0 * length_0 + param_b1 * length_1 \
         + param_c0 * length_0 * length_0 + param_c1 * length_0 * length_1 + param_c2 * length_1 * length_1 \
         + param_d0 * length_0 ** 3 + param_d1 * length_0 ** 2 * length_1 \
         + param_d2 * length_0 * length_1 ** 2 + param_d3 * length_1 ** 3
 
-    approximate(func, points, 'aircraft/Ixx')
+    input_data = extract_tables(testbench_data, ['Length_0', 'Length_1'])
+    output_data = extract_table(testbench_data, 'aircraft/Y_fusevv')
+
+    print(approximate(func, input_data, output_data))
