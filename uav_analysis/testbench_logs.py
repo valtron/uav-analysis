@@ -89,11 +89,30 @@ def extract_table(testbench_data: Dict, field: str) -> numpy.ndarray:
     return result[field]
 
 
+def plot2d(testbench_data: Dict, field1: str, field2: str):
+    from matplotlib import pyplot
+
+    tables = extract_tables(testbench_data, [field1, field2])
+
+    fig, ax1 = pyplot.subplots()
+    ax1.scatter(
+        tables[field1],
+        tables[field2],
+        s=5.0)
+    ax1.set_xlabel(field1)
+    ax1.set_ylabel(field2)
+    pyplot.show()
+
+
 if __name__ == '__main__':
     assert len(sys.argv) >= 2
     testbench_data = read_testbench_zip(sys.argv[1])
     # print(testbench_data['output.csv'][0])
     # print(testbench_data['flightdyn.inp'][testbench_data['output.csv'][0]['GUID']])
+
+    plot2d(testbench_data, 'Length_0', 'Length_1')
+    plot2d(testbench_data, 'Length_0', 'aircraft/X_fuseuu')
+    plot2d(testbench_data, 'Length_1', 'aircraft/X_fuseuu')
 
     length_0 = sympy.Symbol('Length_0')
     length_1 = sympy.Symbol('Length_1')
@@ -118,6 +137,7 @@ if __name__ == '__main__':
         + param_d2 * length_0 * length_1 ** 2 + param_d3 * length_1 ** 3
 
     input_data = extract_tables(testbench_data, ['Length_0', 'Length_1'])
+    print(input_data)
 
     for name in ['aircraft/mass',
                  'aircraft/x_cm', 'aircraft/y_cm', 'aircraft/z_cm',
