@@ -107,7 +107,7 @@ def approximate(func: sympy.Expr, input_data: Dict[str, numpy.ndarray],
         print("WARNING: apprixmation failed with cost", result.cost)
 
     params = {var: result.x[idx] for idx, var in enumerate(param_vars)}
-    return params
+    return params, result.cost
 
 
 if __name__ == '__main__':

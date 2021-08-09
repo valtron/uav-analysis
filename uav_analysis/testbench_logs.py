@@ -118,6 +118,11 @@ if __name__ == '__main__':
         + param_d2 * length_0 * length_1 ** 2 + param_d3 * length_1 ** 3
 
     input_data = extract_tables(testbench_data, ['Length_0', 'Length_1'])
-    output_data = extract_table(testbench_data, 'aircraft/Y_fusevv')
 
-    print(approximate(func, input_data, output_data))
+    for name in ['aircraft/mass',
+                 'aircraft/x_cm', 'aircraft/y_cm', 'aircraft/z_cm',
+                 'aircraft/Ixx', 'aircraft/Iyy', 'aircraft/Izz',
+                 'aircraft/X_fuseuu', 'aircraft/Y_fusevv', 'aircraft/Z_fuseww']:
+        print("Approximating", name)
+        output_data = extract_table(testbench_data, name)
+        approximate(func, input_data, output_data)
