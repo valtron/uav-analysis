@@ -41,18 +41,7 @@ def parse_fdm_input(lines: Union[str, List[str]]) -> Dict:
         with open(lines, 'r') as f:
             lines = f.readlines()
 
-    design = {
-        'aircraft': {
-            'num_propellers': 0,
-            'num_wings': 0,
-            'num_batteries': 0
-        },
-        'control': {},
-        'propellers': [],
-        'wings': [],
-        'batteries': []
-    }
-
+    design = dict()
     state = 0
     for line in lines:
         line = line.strip()
@@ -73,55 +62,15 @@ def parse_fdm_input(lines: Union[str, List[str]]) -> Dict:
         if not line:
             continue
 
-        pos = line.find('%')
+        pos = line.find('=')
         assert pos >= 0
-        part = line[:pos].strip()
-        rest = line[pos + 1:]
+        attr = line[:pos].strip().replace('%', '.')
+        value = line[pos + 1:].strip()
 
-        pos = rest.find('=')
-        assert pos >= 0
-        attr = rest[:pos].strip()
-        value = rest[pos + 1:].strip()
-
-        if part.endswith(')'):
-            pos = part.find('(')
-            assert pos >= 0
-            index = int(part[pos + 1:-1])
-            part = part[:pos]
-        else:
-            index = -1
-
-        value = parse_fortran_value(value)
-        if part == 'aircraft':
-            design['aircraft'][attr] = value
-        elif part == 'propeller':
-            assert index >= 1
-            while len(design['propellers']) < index:
-                design['propellers'].append(dict())
-            design['propellers'][index - 1][attr] = value
-        elif part == 'wing':
-            assert index >= 1
-            while len(design['wings']) < index:
-                design['wings'].append(dict())
-            design['wings'][index - 1][attr] = value
-        elif part == 'battery':
-            assert index >= 1
-            while len(design['batteries']) < index:
-                design['batteries'].append(dict())
-            design['batteries'][index - 1][attr] = value
-        elif part == 'control':
-            design['control'][attr] = value
-        else:
-            print("WARNING: unexpected property", line)
+        design[attr] = parse_fortran_value(value)
 
     if state != 2:
         print("ERROR: Could not load aircraft design")
-
-    for name in ['propellers', 'wings', 'batteries']:
-        if design['aircraft']['num_' + name] != len(design[name]):
-            print("WARNING: incorrect number of " + name)
-        else:
-            del design['aircraft']['num_' + name]
 
     return design
 

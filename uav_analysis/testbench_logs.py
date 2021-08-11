@@ -73,9 +73,8 @@ def extract_tables(testbench_data: Dict, fields: List[str]) -> Dict[str, numpy.n
         for field in fields:
             if field in entry:
                 value = float(entry[field])
-            elif field.startswith('aircraft/'):
-                field2 = field[field.find('/') + 1:]
-                value = entry2['aircraft'][field2]
+            elif field in entry2:
+                value = float(entry2[field])
             else:
                 raise ValueError("Unknown field " + field)
 
@@ -111,8 +110,8 @@ if __name__ == '__main__':
     # print(testbench_data['flightdyn.inp'][testbench_data['output.csv'][0]['GUID']])
 
     plot2d(testbench_data, 'Length_0', 'Length_1')
-    plot2d(testbench_data, 'Length_0', 'aircraft/X_fuseuu')
-    plot2d(testbench_data, 'Length_1', 'aircraft/X_fuseuu')
+    plot2d(testbench_data, 'Length_0', 'aircraft.X_fuseuu')
+    plot2d(testbench_data, 'Length_1', 'aircraft.X_fuseuu')
 
     length_0 = sympy.Symbol('Length_0')
     length_1 = sympy.Symbol('Length_1')
@@ -139,10 +138,10 @@ if __name__ == '__main__':
     input_data = extract_tables(testbench_data, ['Length_0', 'Length_1'])
     print(input_data)
 
-    for name in ['aircraft/mass',
-                 'aircraft/x_cm', 'aircraft/y_cm', 'aircraft/z_cm',
-                 'aircraft/Ixx', 'aircraft/Iyy', 'aircraft/Izz',
-                 'aircraft/X_fuseuu', 'aircraft/Y_fusevv', 'aircraft/Z_fuseww']:
+    for name in ['aircraft.mass',
+                 'aircraft.x_cm', 'aircraft.y_cm', 'aircraft.z_cm',
+                 'aircraft.Ixx', 'aircraft.Iyy', 'aircraft.Izz',
+                 'aircraft.X_fuseuu', 'aircraft.Y_fusevv', 'aircraft.Z_fuseww']:
         print("Approximating", name)
         output_data = extract_table(testbench_data, name)
         approximate(func, input_data, output_data)
