@@ -30,7 +30,7 @@ def quad_copter_props(data: 'TestbenchData') -> Dict[str, sympy.Expr]:
 
     param = 0
 
-    def P():
+    def C():
         nonlocal param
         param += 1
         return sympy.Symbol("param_" + str(param))
@@ -42,41 +42,38 @@ def quad_copter_props(data: 'TestbenchData') -> Dict[str, sympy.Expr]:
         print("INFO:", name, "approx error", error)
         result[name] = expr.subs(subs)
 
-    fit('aircraft.mass', P() + P() * L0 + P() * L1)
+    fit('aircraft.mass', C() + C() * L0 + C() * L1)
 
-    fit('aircraft.x_cm',
-        (P() + P() * L0 + P() * L1 + P() * L1 ** 2) / result['aircraft.mass'])
-    fit('aircraft.y_cm',
-        (P() + P() * L0 + P() * L1 + P() * L1 ** 2) / result['aircraft.mass'])
-    fit('aircraft.z_cm',
-        (P() + P() * L0 + P() * L1 + P() * L1 ** 2) / result['aircraft.mass'])
+    fit('aircraft.x_cm', C() / result['aircraft.mass'])
+    fit('aircraft.y_cm', C() / result['aircraft.mass'])
+    fit('aircraft.z_cm', (C() + C() * L0 + C() * L1 + C() * L1 ** 2) / result['aircraft.mass'])
 
-    fit('aircraft.X_fuseuu', P() + P() * L0 + P() * L1)
-    fit('aircraft.Y_fusevv', P() + P() * L0 + P() * L1)
-    fit('aircraft.Z_fuseww', P() + P() * L0 + P() * L1)
+    fit('aircraft.X_fuseuu', C() + C() * L0 + C() * L1)
+    fit('aircraft.Y_fusevv', C() + C() * L0 + C() * L1)
+    fit('aircraft.Z_fuseww', C() + C() * L0 + C() * L1)
 
-    fit('aircraft.Ixx', P() + P() * L0 + P() * L1
-        + P() * L0 ** 2 + P() * L0 * L1 + P() * L1 ** 2
-        + P() * L0 ** 3 + P() * L0 ** 2 * L1 + P() * L0 * L1 ** 2 + P() * L1 ** 3)
-    fit('aircraft.Iyy', P() + P() * L0 + P() * L1
-        + P() * L0 ** 2 + P() * L0 * L1 + P() * L1 ** 2
-        + P() * L0 ** 3 + P() * L0 ** 2 * L1 + P() * L0 * L1 ** 2 + P() * L1 ** 3)
-    fit('aircraft.Izz', P() + P() * L0 + P() * L1
-        + P() * L0 ** 2 + P() * L0 * L1 + P() * L1 ** 2
-        + P() * L0 ** 3 + P() * L0 ** 2 * L1 + P() * L0 * L1 ** 2 + P() * L1 ** 3)
+    fit('aircraft.Ixx', C() + C() * L0 + C() * L1
+        + C() * L0 ** 2 + C() * L0 * L1 + C() * L1 ** 2
+        + C() * L0 ** 3 + C() * L0 ** 2 * L1 + C() * L0 * L1 ** 2 + C() * L1 ** 3)
+    fit('aircraft.Iyy', C() + C() * L0 + C() * L1
+        + C() * L0 ** 2 + C() * L0 * L1 + C() * L1 ** 2
+        + C() * L0 ** 3 + C() * L0 ** 2 * L1 + C() * L0 * L1 ** 2 + C() * L1 ** 3)
+    fit('aircraft.Izz', C() + C() * L0 + C() * L1
+        + C() * L0 ** 2 + C() * L0 * L1 + C() * L1 ** 2
+        + C() * L0 ** 3 + C() * L0 ** 2 * L1 + C() * L0 * L1 ** 2 + C() * L1 ** 3)
 
-    fit('propeller(1).x', P() * L0)
-    fit('propeller(1).y', P() * L0)
-    fit('propeller(1).z', P())
-    fit('propeller(2).x', P() * L0)
-    fit('propeller(2).y', P() * L0)
-    fit('propeller(2).z', P())
-    fit('propeller(3).x', P() * L0)
-    fit('propeller(3).y', P() * L0)
-    fit('propeller(3).z', P())
-    fit('propeller(4).x', P() * L0)
-    fit('propeller(4).y', P() * L0)
-    fit('propeller(4).z', P())
+    fit('propeller(1).x', C() * L0)
+    fit('propeller(1).y', C() * L0)
+    fit('propeller(1).z', C())
+    fit('propeller(2).x', C() * L0)
+    fit('propeller(2).y', C() * L0)
+    fit('propeller(2).z', C())
+    fit('propeller(3).x', C() * L0)
+    fit('propeller(3).y', C() * L0)
+    fit('propeller(3).z', C())
+    fit('propeller(4).x', C() * L0)
+    fit('propeller(4).y', C() * L0)
+    fit('propeller(4).z', C())
 
     return result
 
