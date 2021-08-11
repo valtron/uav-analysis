@@ -22,27 +22,63 @@ from uav_analysis.testbench_data import TestbenchData
 from uav_analysis.func_approx import approximate
 
 
-def quad_copter(data: 'TestbenchData') -> Dict[str, sympy.Expr]:
-    length_0 = sympy.Symbol('Length_0')
-    length_1 = sympy.Symbol('Length_1')
+def quad_copter_props(data: 'TestbenchData') -> Dict[str, sympy.Expr]:
+    L0 = sympy.Symbol('Length_0')  # arm
+    L1 = sympy.Symbol('Length_1')  # support
 
     input_data = data.get_tables(['Length_0', 'Length_1'])
 
-    param_idx = 0
+    param = 0
 
-    def param():
-        nonlocal param_idx
-        param_idx += 1
-        return sympy.Symbol("param_" + str(param_idx))
+    def P():
+        nonlocal param
+        param += 1
+        return sympy.Symbol("param_" + str(param))
 
-    mass = param() + param() * length_0 + param() * length_1
-    subs, _ = approximate(mass, input_data, data.get_table('aircraft.mass'))
-    print(subs)
-    mass = mass.subs(subs)
+    result = dict()
 
-    return {
-        'mass': mass
-    }
+    def fit(name, expr):
+        subs, error = approximate(expr, input_data, data.get_table(name))
+        print("INFO:", name, "approx error", error)
+        result[name] = expr.subs(subs)
+
+    fit('aircraft.mass', P() + P() * L0 + P() * L1)
+
+    fit('aircraft.x_cm',
+        (P() + P() * L0 + P() * L1 + P() * L1 ** 2) / result['aircraft.mass'])
+    fit('aircraft.y_cm',
+        (P() + P() * L0 + P() * L1 + P() * L1 ** 2) / result['aircraft.mass'])
+    fit('aircraft.z_cm',
+        (P() + P() * L0 + P() * L1 + P() * L1 ** 2) / result['aircraft.mass'])
+
+    fit('aircraft.X_fuseuu', P() + P() * L0 + P() * L1)
+    fit('aircraft.Y_fusevv', P() + P() * L0 + P() * L1)
+    fit('aircraft.Z_fuseww', P() + P() * L0 + P() * L1)
+
+    fit('aircraft.Ixx', P() + P() * L0 + P() * L1
+        + P() * L0 ** 2 + P() * L0 * L1 + P() * L1 ** 2
+        + P() * L0 ** 3 + P() * L0 ** 2 * L1 + P() * L0 * L1 ** 2 + P() * L1 ** 3)
+    fit('aircraft.Iyy', P() + P() * L0 + P() * L1
+        + P() * L0 ** 2 + P() * L0 * L1 + P() * L1 ** 2
+        + P() * L0 ** 3 + P() * L0 ** 2 * L1 + P() * L0 * L1 ** 2 + P() * L1 ** 3)
+    fit('aircraft.Izz', P() + P() * L0 + P() * L1
+        + P() * L0 ** 2 + P() * L0 * L1 + P() * L1 ** 2
+        + P() * L0 ** 3 + P() * L0 ** 2 * L1 + P() * L0 * L1 ** 2 + P() * L1 ** 3)
+
+    fit('propeller(1).x', P() * L0)
+    fit('propeller(1).y', P() * L0)
+    fit('propeller(1).z', P())
+    fit('propeller(2).x', P() * L0)
+    fit('propeller(2).y', P() * L0)
+    fit('propeller(2).z', P())
+    fit('propeller(3).x', P() * L0)
+    fit('propeller(3).y', P() * L0)
+    fit('propeller(3).z', P())
+    fit('propeller(4).x', P() * L0)
+    fit('propeller(4).y', P() * L0)
+    fit('propeller(4).z', P())
+
+    return result
 
 
 if __name__ == '__main__':
@@ -51,4 +87,5 @@ if __name__ == '__main__':
     data = TestbenchData()
     data.load(sys.argv[1])
 
-    print(quad_copter(data))
+    formulas = quad_copter_props(data)
+    print(formulas)

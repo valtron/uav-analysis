@@ -101,9 +101,7 @@ def approximate(func: sympy.Expr, input_data: Dict[str, numpy.ndarray],
         Func(),
         init)
 
-    if result.success:
-        print("INFO: approximation is successful with cost", result.cost)
-    else:
+    if not result.success:
         print("WARNING: apprixmation failed with cost", result.cost)
 
     params = {var: result.x[idx] for idx, var in enumerate(param_vars)}
