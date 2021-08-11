@@ -18,7 +18,6 @@ from typing import List, Dict
 
 import csv
 import os
-import sys
 import sympy
 import numpy
 import zipfile
@@ -92,7 +91,8 @@ class TestbenchData():
 
 
 if __name__ == '__main__':
-    assert len(sys.argv) >= 2
+    import sys
+
     data = TestbenchData()
     data.load(sys.argv[1])
 
