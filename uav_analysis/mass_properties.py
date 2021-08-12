@@ -66,73 +66,63 @@ def quad_copter_props(data: 'TestbenchData') -> Dict[str, sympy.Expr]:
     result = dict()
 
     def fit(name, expr):
-        subs, error = approximate(expr, input_data, data.get_table(name))
-        print("INFO:", name, "approx error", error)
-        result[name] = expr.subs(subs)
+        if data.has_field(name):
+            subs, error = approximate(expr, input_data, data.get_table(name))
+            print("INFO:", name, "approx error", error)
+            result[name] = expr.subs(subs)
+        else:
+            result[name] = 0.0
+            print("WARNING: missing data for", name)
+        return result[name]
 
-    if False:
-        fit('aircraft.mass', C() + C() * L0 + C() * L1)
+    mass = fit('aircraft.mass', C() + C() * L0 + C() * L1)
 
-        fit('aircraft.x_cm', C() / result['aircraft.mass'])
-        fit('aircraft.y_cm', C() / result['aircraft.mass'])
-        fit('aircraft.z_cm', (C() + C() * L0 + C() * L1 + C() * L1 ** 2) / result['aircraft.mass'])
+    x_cm = fit('aircraft.x_cm', C() / mass)
+    y_cm = fit('aircraft.y_cm', C() / mass)
+    z_cm = fit('aircraft.z_cm', (C() + C() * L0 + C() * L1 + C() * L1 ** 2) / mass)
 
-        fit('aircraft.X_fuseuu', C() + C() * L0 + C() * L1)
-        fit('aircraft.Y_fusevv', C() + C() * L0 + C() * L1)
-        fit('aircraft.Z_fuseww', C() + C() * L0 + C() * L1)
+    # we compensate for the center of gravity offset
+    fit('aircraft.Ixx', C() + C() * L0 + C() * L1
+        + C() * L0 ** 2 + C() * L0 * L1 + C() * L1 ** 2
+        + C() * L0 ** 3 + C() * L0 ** 2 * L1 + C() * L0 * L1 ** 2 + C() * L1 ** 3
+        - mass * (y_cm ** 2 + z_cm ** 2))
+    fit('aircraft.Iyy', C() + C() * L0 + C() * L1
+        + C() * L0 ** 2 + C() * L0 * L1 + C() * L1 ** 2
+        + C() * L0 ** 3 + C() * L0 ** 2 * L1 + C() * L0 * L1 ** 2 + C() * L1 ** 3
+        - mass * (x_cm ** 2 + z_cm ** 2))
+    fit('aircraft.Izz', C() + C() * L0 + C() * L1
+        + C() * L0 ** 2 + C() * L0 * L1 + C() * L1 ** 2
+        + C() * L0 ** 3 + C() * L0 ** 2 * L1 + C() * L0 * L1 ** 2 + C() * L1 ** 3
+        - mass * (x_cm ** 2 + y_cm ** 2))
+    fit('aircraft.Ixy', C() + C() * L0 + C() * L1
+        + C() * L0 ** 2 + C() * L0 * L1 + C() * L1 ** 2
+        + C() * L0 ** 3 + C() * L0 ** 2 * L1 + C() * L0 * L1 ** 2 + C() * L1 ** 3
+        + mass * x_cm * y_cm)
+    fit('aircraft.Ixz', C() + C() * L0 + C() * L1
+        + C() * L0 ** 2 + C() * L0 * L1 + C() * L1 ** 2
+        + C() * L0 ** 3 + C() * L0 ** 2 * L1 + C() * L0 * L1 ** 2 + C() * L1 ** 3
+        + mass * x_cm * z_cm)
+    fit('aircraft.Iyz', C() + C() * L0 + C() * L1
+        + C() * L0 ** 2 + C() * L0 * L1 + C() * L1 ** 2
+        + C() * L0 ** 3 + C() * L0 ** 2 * L1 + C() * L0 * L1 ** 2 + C() * L1 ** 3
+        + mass * y_cm * z_cm)
 
-        fit('aircraft.Ixx', C() + C() * L0 + C() * L1
-            + C() * L0 ** 2 + C() * L0 * L1 + C() * L1 ** 2
-            + C() * L0 ** 3 + C() * L0 ** 2 * L1 + C() * L0 * L1 ** 2 + C() * L1 ** 3)
-        fit('aircraft.Iyy', C() + C() * L0 + C() * L1
-            + C() * L0 ** 2 + C() * L0 * L1 + C() * L1 ** 2
-            + C() * L0 ** 3 + C() * L0 ** 2 * L1 + C() * L0 * L1 ** 2 + C() * L1 ** 3)
-        fit('aircraft.Izz', C() + C() * L0 + C() * L1
-            + C() * L0 ** 2 + C() * L0 * L1 + C() * L1 ** 2
-            + C() * L0 ** 3 + C() * L0 ** 2 * L1 + C() * L0 * L1 ** 2 + C() * L1 ** 3)
-        fit('aircraft.Ixy', C() + C() * L0 + C() * L1
-            + C() * L0 ** 2 + C() * L0 * L1 + C() * L1 ** 2
-            + C() * L0 ** 3 + C() * L0 ** 2 * L1 + C() * L0 * L1 ** 2 + C() * L1 ** 3)
-        fit('aircraft.Ixz', C() + C() * L0 + C() * L1
-            + C() * L0 ** 2 + C() * L0 * L1 + C() * L1 ** 2
-            + C() * L0 ** 3 + C() * L0 ** 2 * L1 + C() * L0 * L1 ** 2 + C() * L1 ** 3)
-        fit('aircraft.Iyz', C() + C() * L0 + C() * L1
-            + C() * L0 ** 2 + C() * L0 * L1 + C() * L1 ** 2
-            + C() * L0 ** 3 + C() * L0 ** 2 * L1 + C() * L0 * L1 ** 2 + C() * L1 ** 3)
+    fit('aircraft.X_fuseuu', C() + C() * L0 + C() * L1)
+    fit('aircraft.Y_fusevv', C() + C() * L0 + C() * L1)
+    fit('aircraft.Z_fuseww', C() + C() * L0 + C() * L1)
 
-        fit('propeller(1).x', C() * L0)
-        fit('propeller(1).y', C() * L0)
-        fit('propeller(1).z', C())
-        fit('propeller(2).x', C() * L0)
-        fit('propeller(2).y', C() * L0)
-        fit('propeller(2).z', C())
-        fit('propeller(3).x', C() * L0)
-        fit('propeller(3).y', C() * L0)
-        fit('propeller(3).z', C())
-        fit('propeller(4).x', C() * L0)
-        fit('propeller(4).y', C() * L0)
-        fit('propeller(4).z', C())
-
-    cm_inertia = inertia_matrix(
-        data.get_table('aircraft.Ixx'),
-        data.get_table('aircraft.Ixy'),
-        data.get_table('aircraft.Ixz'),
-        data.get_table('aircraft.Iyy'),
-        data.get_table('aircraft.Iyz'),
-        data.get_table('aircraft.Izz')
-    )
-    mass = data.get_table('aircraft.mass')
-    offset = numpy.array([
-        data.get_table('aircraft.x_cm'),
-        data.get_table('aircraft.y_cm'),
-        data.get_table('aircraft.z_cm'),
-    ])
-    rf_inertia = translate_inertia(cm_inertia, mass, offset)
-
-    expr = C() + C() * L0 + C() * L1 + C() * L0 ** 2 + C() * L0 * L1 + C() * L1 ** 2 + \
-        C() * L0 ** 3 + C() * L0 ** 2 * L1 + C() * L0 * L1 ** 2 + C() * L1 ** 3
-    subs, error = approximate(expr, input_data, rf_inertia[0, 0])
-    print("INFO: reference frame Ixx approx error", error)
+    fit('propeller(1).x', C() * L0)
+    fit('propeller(1).y', C() * L0)
+    fit('propeller(1).z', C())
+    fit('propeller(2).x', C() * L0)
+    fit('propeller(2).y', C() * L0)
+    fit('propeller(2).z', C())
+    fit('propeller(3).x', C() * L0)
+    fit('propeller(3).y', C() * L0)
+    fit('propeller(3).z', C())
+    fit('propeller(4).x', C() * L0)
+    fit('propeller(4).y', C() * L0)
+    fit('propeller(4).z', C())
 
     return result
 
@@ -144,4 +134,5 @@ if __name__ == '__main__':
     data.load(sys.argv[1])
 
     formulas = quad_copter_props(data)
-    print(formulas)
+    for key, val in formulas.items():
+        print(key, "=", val)

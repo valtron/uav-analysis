@@ -49,6 +49,19 @@ class TestbenchData():
                         data = parse_fdm_input(lines)
                         self.flightdyn_inp[guid] = data
 
+    def has_field(self, field: str):
+        for entry in self.output_csv:
+            if entry['AnalysisError'] != 'False':
+                continue
+            if int(entry['Interferences']) != 0:
+                continue
+
+            entry2 = self.flightdyn_inp[entry['GUID']]
+            if field not in entry and field not in entry2:
+                return False
+
+        return True
+
     def get_tables(self, fields: List[str]) -> Dict[str, numpy.ndarray]:
         result = {field: [] for field in fields}
 
