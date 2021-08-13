@@ -14,16 +14,71 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from typing import List, Dict
+from typing import List, Dict, Any, Union
 
 import csv
 import os
-import sympy
 import numpy
 import zipfile
 
-from uav_analysis.fdm_input import parse_fdm_input
-from uav_analysis.func_approx import approximate
+
+def parse_fortran_value(value: str) -> Any:
+    value = value.strip()
+    if value.lower() == '.true.':
+        return True
+    elif value.lower() == '.false.':
+        return False
+    elif value.startswith('\''):
+        return value.strip('\'')
+    elif ',' in value:
+        value = value.split(',')
+        return [parse_fortran_value(v) for v in value]
+    elif 'd' in value or '.' in value:
+        return float(value.replace('d', 'e'))
+    else:
+        return int(value)
+
+
+def parse_fdm_input(lines: Union[str, List[str]]) -> Dict[str, Any]:
+    """
+    Reads a new_fdm input file and returns the parameters as a dictionary.
+    """
+    if isinstance(lines, str):
+        with open(lines, 'r') as f:
+            lines = f.readlines()
+
+    design = dict()
+    state = 0
+    for line in lines:
+        line = line.strip()
+        if line == "&aircraft_data":
+            assert state == 0
+            state = 1
+            continue
+        elif line == "/":
+            assert state == 1
+            state = 2
+            continue
+        elif state != 1:
+            continue
+
+        pos = line.find('!')
+        if pos >= 0:
+            line = line[:pos].strip()
+        if not line:
+            continue
+
+        pos = line.find('=')
+        assert pos >= 0
+        attr = line[:pos].strip().replace('%', '.')
+        value = line[pos + 1:].strip()
+
+        design[attr] = parse_fortran_value(value)
+
+    if state != 2:
+        print("ERROR: Could not load aircraft design")
+
+    return design
 
 
 class TestbenchData():
@@ -49,7 +104,7 @@ class TestbenchData():
                         data = parse_fdm_input(lines)
                         self.flightdyn_inp[guid] = data
 
-    def has_field(self, field: str):
+    def has_field(self, field: str) -> bool:
         for entry in self.output_csv:
             if entry['AnalysisError'] != 'False':
                 continue
@@ -61,6 +116,16 @@ class TestbenchData():
                 return False
 
         return True
+
+    def get_fields(self) -> List[str]:
+        fields = set()
+        for entry in self.output_csv:
+            fields = fields.union(entry.keys())
+
+            entry2 = self.flightdyn_inp[entry['GUID']]
+            fields = fields.union(entry2.keys())
+
+        return sorted(list(fields))
 
     def get_tables(self, fields: List[str]) -> Dict[str, numpy.ndarray]:
         result = {field: [] for field in fields}
@@ -101,3 +166,25 @@ class TestbenchData():
         ax1.set_xlabel(field1)
         ax1.set_ylabel(field2)
         pyplot.show()
+
+
+def run(args=None):
+    import argparse
+
+    parser = argparse.ArgumentParser(
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser.add_argument('file', type=str,  nargs="+", metavar='FILE',
+                        help='a zip log files to read')
+    parser.add_argument('--plot', type=str, nargs=2, metavar='VAR',
+                        help="plots the given pair of values")
+    args = parser.parse_args(args)
+
+    data = TestbenchData()
+    for file in args.file:
+        print("Reading", file)
+        data.load(file)
+
+    print("fields:", ','.join(data.get_fields()))
+
+    if args.plot:
+        data.plot2d(args.plot[0], args.plot[1])

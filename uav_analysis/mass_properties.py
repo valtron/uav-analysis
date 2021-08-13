@@ -138,6 +138,7 @@ def run(args=None):
 
     data = TestbenchData()
     for file in args.file:
+        print("Reading", file)
         data.load(file)
 
     formulas = quad_copter_props(data)

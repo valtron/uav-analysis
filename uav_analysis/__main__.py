@@ -17,14 +17,14 @@
 import argparse
 import sys
 
-from uav_analysis import mass_properties
+from uav_analysis import testbench_data, mass_properties
 
 
 def run():
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('command', help="""
-    mass-properties
+    testbench-data, mass-properties
     """)
     args = parser.parse_args(sys.argv[1:2])
 
@@ -32,7 +32,9 @@ def run():
     sys.argv[0] += ' ' + args.command
     args.command = args.command.replace('_', '-')
 
-    if args.command == 'mass-properties':
+    if args.command == 'testbench-data':
+        testbench_data.run(args=sys.argv[2:])
+    elif args.command == 'mass-properties':
         mass_properties.run(args=sys.argv[2:])
     else:
         parser.print_help()
