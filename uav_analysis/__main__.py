@@ -14,26 +14,29 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from setuptools import setup
+import argparse
+import sys
 
-setup(
-    name='uav-analysis',
-    version='0.1',
-    packages=['uav_analysis'],
-    license='GPL 3',
-    description="UAV analysis playground",
-    long_description=open('README.md').read(),
-    python_requires='>3.6',
-    # do not list standard packages
-    install_requires=[
-        'numpy',
-        'sympy',
-        'scipy',
-        'matplotlib',
-    ],
-    entry_points={
-        'console_scripts': [
-            'uav-analysis = uav_analysis.__main__:run'
-        ]
-    }
-)
+from uav_analysis import mass_properties
+
+
+def run():
+    parser = argparse.ArgumentParser(
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser.add_argument('command', help="""
+    mass-properties
+    """)
+    args = parser.parse_args(sys.argv[1:2])
+
+    # hack the program name for nested parsers
+    sys.argv[0] += ' ' + args.command
+    args.command = args.command.replace('_', '-')
+
+    if args.command == 'mass-properties':
+        mass_properties.run(args=sys.argv[2:])
+    else:
+        parser.print_help()
+
+
+if __name__ == '__main__':
+    run()

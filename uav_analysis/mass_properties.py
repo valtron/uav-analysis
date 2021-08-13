@@ -127,11 +127,18 @@ def quad_copter_props(data: 'TestbenchData') -> Dict[str, sympy.Expr]:
     return result
 
 
-if __name__ == '__main__':
-    import sys
+def run(args=None):
+    import argparse
+
+    parser = argparse.ArgumentParser(
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser.add_argument('file', type=str,  nargs="+", metavar='FILE',
+                        help='a zip log files to read')
+    args = parser.parse_args(args)
 
     data = TestbenchData()
-    data.load(sys.argv[1])
+    for file in args.file:
+        data.load(file)
 
     formulas = quad_copter_props(data)
     for key, val in formulas.items():
