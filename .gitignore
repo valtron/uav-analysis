@@ -9,7 +9,5 @@ __pycache__
 *.egg
 **/.ipynb_checkpoints
 *.npz
-*.csv
-*.pdf
-*.pt
 *.DS_Store
+.~lock*

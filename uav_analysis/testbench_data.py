@@ -17,9 +17,30 @@
 from typing import List, Dict, Any, Union
 
 import csv
-import os
+import json
 import numpy
+import os
+import re
 import zipfile
+
+
+def load_static_data(name: str) -> Dict[str, Dict[str, Any]]:
+    filename = os.path.abspath(os.path.dirname(__file__))
+    filename = os.path.join(filename, 'data', name + '.csv')
+
+    result = dict()
+    with open(filename) as file:
+        reader = csv.DictReader(file)
+        for line in reader:
+            result[line['Name']] = dict(line)
+
+    return result
+
+
+BATTERIES = load_static_data('Battery')
+PROPELLERS = load_static_data('Propeller')
+WINGS = load_static_data('Wing')
+MOTORS = load_static_data('Motor')
 
 
 def parse_fortran_value(value: str) -> Any:
@@ -37,6 +58,9 @@ def parse_fortran_value(value: str) -> Any:
         return float(value.replace('d', 'e'))
     else:
         return int(value)
+
+
+RE_CNAME = re.compile('^((.+)\(\d+\)\.)cname$')
 
 
 def parse_fdm_input(lines: Union[str, List[str]]) -> Dict[str, Any]:
@@ -78,23 +102,47 @@ def parse_fdm_input(lines: Union[str, List[str]]) -> Dict[str, Any]:
     if state != 2:
         print("ERROR: Could not load aircraft design")
 
+    # look up entries from static data
+    extra = dict()
+    for key, val in design.items():
+        match = RE_CNAME.match(key)
+        if not match:
+            continue
+
+        if match[2] == 'propeller':
+            dataset = PROPELLERS[val]
+            fields2 = ['DIAMETER', 'Weight']
+        else:
+            continue
+
+        for field2 in fields2:
+            extra[match[1] + field2] = dataset[field2]
+    design.update(extra)
+
     return design
 
 
 class TestbenchData():
     def __init__(self):
-        self.output_csv = []     # List[Dict[str, str]]
-        self.flightdyn_inp = {}  # Dict[str, Dict]
+        self.output_csv = []         # List[Dict[str, str]]
+        self.flightdyn_inp = {}      # Dict[str, Dict]
+        self.componentmap_json = []  # List[Dict[str, str]]
 
     def load(self, filename: str):
+        dataset_index = len(self.componentmap_json)
+        self.componentmap_json.append({
+            'filename': filename,
+        })
         with zipfile.ZipFile(filename) as file:
             for name in file.namelist():
                 if os.path.basename(name) == 'output.csv':
                     with file.open(name) as content:
                         lines = content.readlines()
                         lines = [line.decode('ascii') for line in lines]
-                        reader = csv.DictReader(lines)
-                        self.output_csv.extend([dict(line) for line in reader])
+                        for line in csv.DictReader(lines):
+                            line = dict(line)
+                            line['dataset_index'] = dataset_index
+                            self.output_csv.append(line)
                 elif os.path.basename(name) == 'FlightDyn.inp':
                     guid = os.path.basename(os.path.dirname(name))
                     assert guid not in self.flightdyn_inp
@@ -102,7 +150,14 @@ class TestbenchData():
                         lines = content.readlines()
                         lines = [line.decode('ascii') for line in lines]
                         data = parse_fdm_input(lines)
+                        data['dataset_index'] = dataset_index
                         self.flightdyn_inp[guid] = data
+                elif os.path.basename(name) == 'componentMap.json':
+                    comp_map = self.componentmap_json[dataset_index]
+                    with file.open(name) as content:
+                        entries = json.loads(content.read())
+                        for entry in entries:
+                            comp_map[entry['FROM_COMP']] = entry['LIB_COMPONENT']
 
     def has_field(self, field: str) -> bool:
         for entry in self.output_csv:
@@ -173,8 +228,12 @@ def run(args=None):
 
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('file', type=str,  nargs="+", metavar='FILE',
-                        help='a zip log files to read')
+    parser.add_argument('file', type=str,  nargs='+', metavar='FILE',
+                        help="a zip log files to read")
+    parser.add_argument('--fields', type=str, metavar='STR', nargs='?', default='',
+                        help="print fields containing this filter string")
+    parser.add_argument('--components', action='store_true',
+                        help="print the list of components for each log file")
     parser.add_argument('--plot', type=str, nargs=2, metavar='VAR',
                         help="plots the given pair of values")
     args = parser.parse_args(args)
@@ -184,7 +243,16 @@ def run(args=None):
         print("Reading", file)
         data.load(file)
 
-    print("fields:", ','.join(data.get_fields()))
+    if args.fields != '':
+        fields = data.get_fields()
+        if args.fields != None:
+            fields = [field for field in fields if args.fields in field]
+        print("fields:")
+        for field in fields:
+            print(field)
+
+    if args.components:
+        print(json.dumps(data.componentmap_json, indent=2, sort_keys=True))
 
     if args.plot:
         data.plot2d(args.plot[0], args.plot[1])
