@@ -61,7 +61,8 @@ def parse_fortran_value(value: str) -> Any:
 
 
 RE_BATTERY = re.compile('! *Battery\((\d+)\) is component named: ([a-zA-Z0-9_]*)')
-RE_PROPELLER = re.compile('! *Propeller\((\d+) uses components named ([a-zA-Z0-9_]*), ([a-zA-Z0-9_]*), ([a-zA-Z0-9_]*)')
+RE_PROPELLER = re.compile(
+    '! *Propeller\((\d+) uses components named ([a-zA-Z0-9_]*), ([a-zA-Z0-9_]*), ([a-zA-Z0-9_]*)')
 
 
 def parse_fdm_input(lines: Union[str, List[str]]) -> Dict[str, Any]:
@@ -89,12 +90,12 @@ def parse_fdm_input(lines: Union[str, List[str]]) -> Dict[str, Any]:
 
         match = RE_BATTERY.match(line)
         if match:
-            design['battery(' + match[1] + ').component_key'] = match[2]
+            design['battery(' + match[1] + ').battery_component_key'] = match[2]
             continue
 
         match = RE_PROPELLER.match(line)
         if match:
-            design['propeller(' + match[1] + ').prop_component_key'] = match[2]
+            design['propeller(' + match[1] + ').propeller_component_key'] = match[2]
             design['propeller(' + match[1] + ').motor_component_key'] = match[3]
             design['propeller(' + match[1] + ').esc_component_key'] = match[4]
             continue
@@ -152,16 +153,33 @@ class TestbenchData():
                     with file.open(name) as content:
                         entries = json.loads(content.read())
                         for entry in entries:
-                            components['component_map.' + entry['FROM_COMP']] = entry['LIB_COMPONENT']
+                            components['component_map.' +
+                                       entry['FROM_COMP']] = entry['LIB_COMPONENT']
 
-        # add and lookup static values
+        # patch and lookup static values
         for entry in byguid.values():
             entry.update(components)
 
             extra = dict()
             for key2, val2 in entry.items():
-                if key2.endswith('component_key'):
-                    extra[key2[:-3] + 'name'] = components['component_map.' + val2]
+                if not key2.endswith('component_key'):
+                    continue
+                key3 = key2[:-3] + 'name'
+                val3 = components['component_map.' + val2]
+                extra[key3] = val3
+
+                pos = key3.rfind('.')
+                if key3.endswith('.battery_component_name'):
+                    extra[key3[:pos] + '.battery_weight'] = float(BATTERIES[val3]['WEIGHT'])
+                    extra[key3[:pos] + '.battery_length'] = float(BATTERIES[val3]['LENGTH'])
+                    extra[key3[:pos] + '.battery_width'] = float(BATTERIES[val3]['WIDTH'])
+                    extra[key3[:pos] + '.battery_thickness'] = float(BATTERIES[val3]['THICKNESS'])
+                elif key3.endswith('.propeller_component_name'):
+                    extra[key3[:pos] + '.propeller_weight'] = float(PROPELLERS[val3]['Weight'])
+                    extra[key3[:pos] + '.propeller_diameter'] = float(PROPELLERS[val3]['DIAMETER'])
+                elif key3.endswith('.motor_component_name'):
+                    extra[key3[:pos] + '.motor_weight'] = float(MOTORS[val3]['WEIGHT'])
+
             entry.update(extra)
 
         self.byguid.update(byguid)
