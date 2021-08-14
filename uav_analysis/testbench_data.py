@@ -60,7 +60,8 @@ def parse_fortran_value(value: str) -> Any:
         return int(value)
 
 
-RE_CNAME = re.compile('^((.+)\(\d+\)\.)cname$')
+RE_BATTERY = re.compile('! *Battery\((\d+)\) is component named: ([a-zA-Z0-9_]*)')
+RE_PROPELLER = re.compile('! *Propeller\((\d+) uses components named ([a-zA-Z0-9_]*), ([a-zA-Z0-9_]*), ([a-zA-Z0-9_]*)')
 
 
 def parse_fdm_input(lines: Union[str, List[str]]) -> Dict[str, Any]:
@@ -86,6 +87,18 @@ def parse_fdm_input(lines: Union[str, List[str]]) -> Dict[str, Any]:
         elif state != 1:
             continue
 
+        match = RE_BATTERY.match(line)
+        if match:
+            design['battery(' + match[1] + ').component_key'] = match[2]
+            continue
+
+        match = RE_PROPELLER.match(line)
+        if match:
+            design['propeller(' + match[1] + ').prop_component_key'] = match[2]
+            design['propeller(' + match[1] + ').motor_component_key'] = match[3]
+            design['propeller(' + match[1] + ').esc_component_key'] = match[4]
+            continue
+
         pos = line.find('!')
         if pos >= 0:
             line = line[:pos].strip()
@@ -102,37 +115,22 @@ def parse_fdm_input(lines: Union[str, List[str]]) -> Dict[str, Any]:
     if state != 2:
         print("ERROR: Could not load aircraft design")
 
-    # look up entries from static data
-    extra = dict()
-    for key, val in design.items():
-        match = RE_CNAME.match(key)
-        if not match:
-            continue
-
-        if match[2] == 'propeller':
-            dataset = PROPELLERS[val]
-            fields2 = ['DIAMETER', 'Weight']
-        else:
-            continue
-
-        for field2 in fields2:
-            extra[match[1] + field2] = dataset[field2]
-    design.update(extra)
-
     return design
 
 
 class TestbenchData():
     def __init__(self):
-        self.output_csv = []         # List[Dict[str, str]]
-        self.flightdyn_inp = {}      # Dict[str, Dict]
-        self.componentmap_json = []  # List[Dict[str, str]]
+        self.byguid = dict()   # Dist[str, Dict[str, Any]]
 
     def load(self, filename: str):
-        dataset_index = len(self.componentmap_json)
-        self.componentmap_json.append({
-            'filename': filename,
-        })
+        byguid = dict()
+        components = dict()
+
+        def record(guid: str, data: Dict[str, Any]):
+            if guid not in byguid:
+                byguid[guid] = dict()
+            byguid[guid].update(data)
+
         with zipfile.ZipFile(filename) as file:
             for name in file.namelist():
                 if os.path.basename(name) == 'output.csv':
@@ -141,67 +139,66 @@ class TestbenchData():
                         lines = [line.decode('ascii') for line in lines]
                         for line in csv.DictReader(lines):
                             line = dict(line)
-                            line['dataset_index'] = dataset_index
-                            self.output_csv.append(line)
+                            record(line['GUID'], line)
                 elif os.path.basename(name) == 'FlightDyn.inp':
                     guid = os.path.basename(os.path.dirname(name))
-                    assert guid not in self.flightdyn_inp
                     with file.open(name) as content:
                         lines = content.readlines()
                         lines = [line.decode('ascii') for line in lines]
                         data = parse_fdm_input(lines)
-                        data['dataset_index'] = dataset_index
-                        self.flightdyn_inp[guid] = data
+                        record(guid, data)
                 elif os.path.basename(name) == 'componentMap.json':
-                    comp_map = self.componentmap_json[dataset_index]
+                    assert not components
                     with file.open(name) as content:
                         entries = json.loads(content.read())
                         for entry in entries:
-                            comp_map[entry['FROM_COMP']] = entry['LIB_COMPONENT']
+                            components['component_map.' + entry['FROM_COMP']] = entry['LIB_COMPONENT']
+
+        # add and lookup static values
+        for entry in byguid.values():
+            entry.update(components)
+
+            extra = dict()
+            for key2, val2 in entry.items():
+                if key2.endswith('component_key'):
+                    extra[key2[:-3] + 'name'] = components['component_map.' + val2]
+            entry.update(extra)
+
+        self.byguid.update(byguid)
 
     def has_field(self, field: str) -> bool:
-        for entry in self.output_csv:
+        for entry in self.byguid.values():
             if entry['AnalysisError'] != 'False':
                 continue
             if int(entry['Interferences']) != 0:
                 continue
 
-            entry2 = self.flightdyn_inp[entry['GUID']]
-            if field not in entry and field not in entry2:
+            if field not in entry:
                 return False
 
         return True
 
     def get_fields(self) -> List[str]:
         fields = set()
-        for entry in self.output_csv:
+        for entry in self.byguid.values():
             fields = fields.union(entry.keys())
-
-            entry2 = self.flightdyn_inp[entry['GUID']]
-            fields = fields.union(entry2.keys())
 
         return sorted(list(fields))
 
     def get_tables(self, fields: List[str]) -> Dict[str, numpy.ndarray]:
         result = {field: [] for field in fields}
 
-        for entry in self.output_csv:
+        for entry in self.byguid.values():
             if entry['AnalysisError'] != 'False':
                 continue
             if int(entry['Interferences']) != 0:
                 continue
 
-            entry2 = self.flightdyn_inp[entry['GUID']]
-
             for field in fields:
                 if field in entry:
-                    value = float(entry[field])
-                elif field in entry2:
-                    value = float(entry2[field])
+                    result[field].append(float(entry[field]))
                 else:
                     raise ValueError("Unknown field " + field)
-
-                result[field].append(value)
 
         return {key: numpy.array(val) for key, val in result.items()}
 
@@ -236,6 +233,8 @@ def run(args=None):
                         help="print the list of components for each log file")
     parser.add_argument('--plot', type=str, nargs=2, metavar='VAR',
                         help="plots the given pair of values")
+    parser.add_argument('--print', action='store_true',
+                        help='print out the first run log data')
     args = parser.parse_args(args)
 
     data = TestbenchData()
@@ -256,3 +255,7 @@ def run(args=None):
 
     if args.plot:
         data.plot2d(args.plot[0], args.plot[1])
+
+    if args.print:
+        guid = list(data.byguid.keys())[0]
+        print(json.dumps(data.byguid[guid], indent=2, sort_keys=True))
