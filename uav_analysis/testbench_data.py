@@ -193,6 +193,14 @@ class TestbenchData():
 
         self.byguid.update(byguid)
 
+    def save_csv(self, filename: str):
+        assert filename.endswith('.csv')
+        with open(filename, mode='w') as file:
+            writer = csv.DictWriter(file, self.get_fields())
+            writer.writeheader()
+            for entry in self.byguid.values():
+                writer.writerow(entry)
+
     def has_field(self, field: str) -> bool:
         for entry in self.byguid.values():
             if entry['AnalysisError'] != 'False':
@@ -262,6 +270,8 @@ def run(args=None):
                         help="plots the given pair of values")
     parser.add_argument('--print', action='store_true',
                         help='print out the first run log data')
+    parser.add_argument('--save', type=str, metavar='FILE',
+                        help="save the loaded data into a csv file")
     args = parser.parse_args(args)
 
     data = TestbenchData()
@@ -286,6 +296,10 @@ def run(args=None):
     if args.print:
         guid = list(data.byguid.keys())[0]
         print(json.dumps(data.byguid[guid], indent=2, sort_keys=True))
+
+    if args.save:
+        print("Writing to", args.save)
+        data.save_csv(args.save)
 
 
 if __name__ == '__main__':

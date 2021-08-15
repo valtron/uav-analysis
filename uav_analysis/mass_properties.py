@@ -58,6 +58,7 @@ def quad_copter_props(data: 'TestbenchData') -> Dict[str, sympy.Expr]:
     B2 = sympy.Symbol('Battery_0_Width')
     B3 = sympy.Symbol('Battery_0_Thickness')
     P0 = sympy.Symbol('Prop_0_Weight')
+    P1 = sympy.Symbol('Prop_0_Diameter')
 
     input_data = data.get_tables([
         'Length_0',
@@ -67,6 +68,7 @@ def quad_copter_props(data: 'TestbenchData') -> Dict[str, sympy.Expr]:
         'Battery_0_Width',
         'Battery_0_Thickness',
         'Prop_0_Weight',
+        'Prop_0_Diameter',
     ])
 
     param = 0
@@ -95,7 +97,7 @@ def quad_copter_props(data: 'TestbenchData') -> Dict[str, sympy.Expr]:
     z_cm = fit('aircraft.z_cm', (C()
                                  + C() * L0 + C() * L1 + C() * L1 ** 2
                                  + C() * B0 + C() * B0 * B2
-                                 + C() * P0 + C() * P0 * L1) / mass)
+                                 + C() * P0 + C() * P0 * L0) / mass)
 
     if True:
         # we compensate for the center of gravity offset
