@@ -93,39 +93,52 @@ def quad_copter_props(data: 'TestbenchData') -> Dict[str, sympy.Expr]:
     z_cm = fit('aircraft.z_cm', (C() + C() * L0 + C() * L1 + C() * L1 ** 2
                                  + C() * B0 + C() * B0 * B2) / mass)
 
-    # we compensate for the center of gravity offset
-    fit('aircraft.Ixx', C() + C() * L0 + C() * L1
-        + C() * L0 ** 2 + C() * L0 * L1 + C() * L1 ** 2
-        + C() * L0 ** 3 + C() * L0 ** 2 * L1 + C() * L0 * L1 ** 2 + C() * L1 ** 3
-        + C() * B0 + C() * B0 * B1 + C() * B0 * B2 + C() * B0 * B3
-        + C() * B0 * B1 ** 2 + C() * B0 * B2 ** 2 + C() * B0 * B3 ** 2
-        - mass * (y_cm ** 2 + z_cm ** 2))
-
-    if False:
+    if True:
+        # we compensate for the center of gravity offset
+        fit('aircraft.Ixx', C() + C() * L0 + C() * L1
+            + C() * L0 ** 2 + C() * L0 * L1 + C() * L1 ** 2
+            + C() * L0 ** 3 + C() * L0 ** 2 * L1 + C() * L0 * L1 ** 2 + C() * L1 ** 3
+            + C() * B0 + C() * B0 * B1 + C() * B0 * B2 + C() * B0 * B3
+            + C() * B0 * B1 ** 2 + C() * B0 * B2 ** 2 + C() * B0 * B3 ** 2
+            - mass * (y_cm ** 2 + z_cm ** 2))
         fit('aircraft.Iyy', C() + C() * L0 + C() * L1
             + C() * L0 ** 2 + C() * L0 * L1 + C() * L1 ** 2
             + C() * L0 ** 3 + C() * L0 ** 2 * L1 + C() * L0 * L1 ** 2 + C() * L1 ** 3
+            + C() * B0 + C() * B0 * B1 + C() * B0 * B2 + C() * B0 * B3
+            + C() * B0 * B1 ** 2 + C() * B0 * B2 ** 2 + C() * B0 * B3 ** 2
             - mass * (x_cm ** 2 + z_cm ** 2))
         fit('aircraft.Izz', C() + C() * L0 + C() * L1
             + C() * L0 ** 2 + C() * L0 * L1 + C() * L1 ** 2
             + C() * L0 ** 3 + C() * L0 ** 2 * L1 + C() * L0 * L1 ** 2 + C() * L1 ** 3
+            + C() * B0 + C() * B0 * B1 + C() * B0 * B2 + C() * B0 * B3
+            + C() * B0 * B1 ** 2 + C() * B0 * B2 ** 2 + C() * B0 * B3 ** 2
             - mass * (x_cm ** 2 + y_cm ** 2))
         fit('aircraft.Ixy', C() + C() * L0 + C() * L1
             + C() * L0 ** 2 + C() * L0 * L1 + C() * L1 ** 2
             + C() * L0 ** 3 + C() * L0 ** 2 * L1 + C() * L0 * L1 ** 2 + C() * L1 ** 3
+            + C() * B0 + C() * B0 * B1 + C() * B0 * B2 + C() * B0 * B3
+            + C() * B0 * B1 ** 2 + C() * B0 * B2 ** 2 + C() * B0 * B3 ** 2
             + mass * x_cm * y_cm)
         fit('aircraft.Ixz', C() + C() * L0 + C() * L1
             + C() * L0 ** 2 + C() * L0 * L1 + C() * L1 ** 2
             + C() * L0 ** 3 + C() * L0 ** 2 * L1 + C() * L0 * L1 ** 2 + C() * L1 ** 3
+            + C() * B0 + C() * B0 * B1 + C() * B0 * B2 + C() * B0 * B3
+            + C() * B0 * B1 ** 2 + C() * B0 * B2 ** 2 + C() * B0 * B3 ** 2
             + mass * x_cm * z_cm)
         fit('aircraft.Iyz', C() + C() * L0 + C() * L1
             + C() * L0 ** 2 + C() * L0 * L1 + C() * L1 ** 2
             + C() * L0 ** 3 + C() * L0 ** 2 * L1 + C() * L0 * L1 ** 2 + C() * L1 ** 3
+            + C() * B0 + C() * B0 * B1 + C() * B0 * B2 + C() * B0 * B3
+            + C() * B0 * B1 ** 2 + C() * B0 * B2 ** 2 + C() * B0 * B3 ** 2
             + mass * y_cm * z_cm)
 
-        fit('aircraft.X_fuseuu', C() + C() * L0 + C() * L1)
-        fit('aircraft.Y_fusevv', C() + C() * L0 + C() * L1)
-        fit('aircraft.Z_fuseww', C() + C() * L0 + C() * L1)
+    if True:
+        fit('aircraft.X_fuseuu', C() + C() * L0 + C() * L1
+            + C() * B1 * B2 + C() * B1 * B3 + C() * B2 * B3)
+        fit('aircraft.Y_fusevv', C() + C() * L0 + C() * L1
+            + C() * B1 * B2 + C() * B1 * B3 + C() * B2 * B3)
+        fit('aircraft.Z_fuseww', C() + C() * L0 + C() * L1
+            + C() * B1 * B2 + C() * B1 * B3 + C() * B2 * B3)
 
     fit('Prop_0_x', C() * L0)
     fit('Prop_0_y', C() * L0)
