@@ -86,20 +86,35 @@ def approximate(func: sympy.Expr, input_data: Dict[str, numpy.ndarray],
     specified outputs.
     """
     symbols = get_symbols(func)
-    input_vars = set(input_data.keys())
-    param_vars = symbols - input_vars
+    param_vars = list(symbols - set(input_data.keys()))
 
-    class Func(Callable):
+    # common shape
+    shape = numpy.broadcast(*input_data.values()).shape
+
+    class Function(Callable):
         def __call__(self, params: List[float]):
             assert len(params) == len(param_vars)
             func2 = func.subs({var: params[idx] for idx, var in enumerate(param_vars)})
             output_data2 = evaluate(func2, input_data)
             return output_data2 - output_data
 
+    class Jacobian(Callable):
+        def __init__(self):
+            self.diffs = [func.diff(var) for var in param_vars]
+
+        def __call__(self, params: List[float]):
+            assert len(params) == len(param_vars)
+            subs = {var: params[idx] for idx, var in enumerate(param_vars)}
+            diffs = [evaluate(diff.subs(subs), input_data) for diff in self.diffs]
+            diffs = [numpy.broadcast_to(diff, shape) for diff in diffs]
+            return numpy.array(diffs).transpose()
+
     init = [0.0] * len(param_vars)
     result = optimize.least_squares(
-        Func(),
-        init)
+        fun=Function(),
+        x0=init,
+        jac=Jacobian(),
+    )
 
     if not result.success:
         print("WARNING: apprixmation failed with cost", result.cost)
