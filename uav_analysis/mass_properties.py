@@ -53,18 +53,18 @@ def translate_inertia(
 def quad_copter_props(data: 'TestbenchData') -> Dict[str, sympy.Expr]:
     L0 = sympy.Symbol('Length_0')  # arm length
     L1 = sympy.Symbol('Length_1')  # support leg
-    B0 = sympy.Symbol('battery(1).battery_weight')
-    B1 = sympy.Symbol('battery(1).battery_length')
-    B2 = sympy.Symbol('battery(1).battery_width')
-    B3 = sympy.Symbol('battery(1).battery_thickness')
+    B0 = sympy.Symbol('Battery_0_Weight')
+    B1 = sympy.Symbol('Battery_0_Length')
+    B2 = sympy.Symbol('Battery_0_Width')
+    B3 = sympy.Symbol('Battery_0_Thickness')
 
     input_data = data.get_tables([
         'Length_0',
         'Length_1',
-        'battery(1).battery_weight',
-        'battery(1).battery_length',
-        'battery(1).battery_width',
-        'battery(1).battery_thickness',
+        'Battery_0_Weight',
+        'Battery_0_Length',
+        'Battery_0_Width',
+        'Battery_0_Thickness',
     ])
 
     param = 0
@@ -90,14 +90,18 @@ def quad_copter_props(data: 'TestbenchData') -> Dict[str, sympy.Expr]:
 
     x_cm = fit('aircraft.x_cm', (C() + C() * B0) / mass)
     y_cm = fit('aircraft.y_cm', (C() + C() * B0) / mass)
-    z_cm = fit('aircraft.z_cm', (C() + C() * L0 + C() * L1 + C() * L1 ** 2 + C() * B0) / mass)
+    z_cm = fit('aircraft.z_cm', (C() + C() * L0 + C() * L1 + C() * L1 ** 2
+                                 + C() * B0 + C() * B0 * B2) / mass)
+
+    # we compensate for the center of gravity offset
+    fit('aircraft.Ixx', C() + C() * L0 + C() * L1
+        + C() * L0 ** 2 + C() * L0 * L1 + C() * L1 ** 2
+        + C() * L0 ** 3 + C() * L0 ** 2 * L1 + C() * L0 * L1 ** 2 + C() * L1 ** 3
+        + C() * B0 + C() * B0 * B1 + C() * B0 * B2 + C() * B0 * B3
+        + C() * B0 * B1 ** 2 + C() * B0 * B2 ** 2 + C() * B0 * B3 ** 2
+        - mass * (y_cm ** 2 + z_cm ** 2))
 
     if False:
-        # we compensate for the center of gravity offset
-        fit('aircraft.Ixx', C() + C() * L0 + C() * L1
-            + C() * L0 ** 2 + C() * L0 * L1 + C() * L1 ** 2
-            + C() * L0 ** 3 + C() * L0 ** 2 * L1 + C() * L0 * L1 ** 2 + C() * L1 ** 3
-            - mass * (y_cm ** 2 + z_cm ** 2))
         fit('aircraft.Iyy', C() + C() * L0 + C() * L1
             + C() * L0 ** 2 + C() * L0 * L1 + C() * L1 ** 2
             + C() * L0 ** 3 + C() * L0 ** 2 * L1 + C() * L0 * L1 ** 2 + C() * L1 ** 3
@@ -123,18 +127,18 @@ def quad_copter_props(data: 'TestbenchData') -> Dict[str, sympy.Expr]:
         fit('aircraft.Y_fusevv', C() + C() * L0 + C() * L1)
         fit('aircraft.Z_fuseww', C() + C() * L0 + C() * L1)
 
-    fit('propeller(1).x', C() * L0)
-    fit('propeller(1).y', C() * L0)
-    fit('propeller(1).z', C())
-    fit('propeller(2).x', C() * L0)
-    fit('propeller(2).y', C() * L0)
-    fit('propeller(2).z', C())
-    fit('propeller(3).x', C() * L0)
-    fit('propeller(3).y', C() * L0)
-    fit('propeller(3).z', C())
-    fit('propeller(4).x', C() * L0)
-    fit('propeller(4).y', C() * L0)
-    fit('propeller(4).z', C())
+    fit('Prop_0_x', C() * L0)
+    fit('Prop_0_y', C() * L0)
+    fit('Prop_0_z', C())
+    fit('Prop_1_x', C() * L0)
+    fit('Prop_1_y', C() * L0)
+    fit('Prop_1_z', C())
+    fit('Prop_2_x', C() * L0)
+    fit('Prop_2_y', C() * L0)
+    fit('Prop_2_z', C())
+    fit('Prop_3_x', C() * L0)
+    fit('Prop_3_y', C() * L0)
+    fit('Prop_3_z', C())
 
     return result
 

@@ -153,8 +153,23 @@ class TestbenchData():
                     with file.open(name) as content:
                         entries = json.loads(content.read())
                         for entry in entries:
-                            components['component_map.' +
-                                       entry['FROM_COMP']] = entry['LIB_COMPONENT']
+                            key = entry['FROM_COMP']
+                            val = entry['LIB_COMPONENT']
+                            components['components.' + key] = val
+
+                            if key.startswith('Battery_'):
+                                components[key + "_Name"] = val
+                                components[key + "_Weight"] = float(BATTERIES[val]['WEIGHT'])
+                                components[key + "_Length"] = float(BATTERIES[val]['LENGTH'])
+                                components[key + "_Width"] = float(BATTERIES[val]['WIDTH'])
+                                components[key + "_Thickness"] = float(BATTERIES[val]['THICKNESS'])
+                            elif key.startswith('Prop_'):
+                                components[key + "_Name"] = val
+                                components[key + "_Weight"] = float(PROPELLERS[val]['Weight'])
+                                components[key + "_Diameter"] = float(PROPELLERS[val]['DIAMETER'])
+                            elif key.startswith('Motor_'):
+                                components[key + "_Name"] = val
+                                components[key + "_Weight"] = float(MOTORS[val]['WEIGHT'])
 
         # patch and lookup static values
         for entry in byguid.values():
@@ -165,20 +180,14 @@ class TestbenchData():
                 if not key2.endswith('component_key'):
                     continue
                 key3 = key2[:-3] + 'name'
-                val3 = components['component_map.' + val2]
+                val3 = components['components.' + val2]
                 extra[key3] = val3
 
-                pos = key3.rfind('.')
-                if key3.endswith('.battery_component_name'):
-                    extra[key3[:pos] + '.battery_weight'] = float(BATTERIES[val3]['WEIGHT'])
-                    extra[key3[:pos] + '.battery_length'] = float(BATTERIES[val3]['LENGTH'])
-                    extra[key3[:pos] + '.battery_width'] = float(BATTERIES[val3]['WIDTH'])
-                    extra[key3[:pos] + '.battery_thickness'] = float(BATTERIES[val3]['THICKNESS'])
-                elif key3.endswith('.propeller_component_name'):
-                    extra[key3[:pos] + '.propeller_weight'] = float(PROPELLERS[val3]['Weight'])
-                    extra[key3[:pos] + '.propeller_diameter'] = float(PROPELLERS[val3]['DIAMETER'])
-                elif key3.endswith('.motor_component_name'):
-                    extra[key3[:pos] + '.motor_weight'] = float(MOTORS[val3]['WEIGHT'])
+                if key2.endswith('.propeller_component_key'):
+                    pos = key2.rfind('.')
+                    extra[val2 + "_x"] = entry[key2[:pos] + '.x']
+                    extra[val2 + "_y"] = entry[key2[:pos] + '.y']
+                    extra[val2 + "_z"] = entry[key2[:pos] + '.z']
 
             entry.update(extra)
 
