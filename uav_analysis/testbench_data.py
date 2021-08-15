@@ -286,3 +286,7 @@ def run(args=None):
     if args.print:
         guid = list(data.byguid.keys())[0]
         print(json.dumps(data.byguid[guid], indent=2, sort_keys=True))
+
+
+if __name__ == '__main__':
+    run()

@@ -57,6 +57,7 @@ def quad_copter_props(data: 'TestbenchData') -> Dict[str, sympy.Expr]:
     B1 = sympy.Symbol('Battery_0_Length')
     B2 = sympy.Symbol('Battery_0_Width')
     B3 = sympy.Symbol('Battery_0_Thickness')
+    P0 = sympy.Symbol('Prop_0_Weight')
 
     input_data = data.get_tables([
         'Length_0',
@@ -65,6 +66,7 @@ def quad_copter_props(data: 'TestbenchData') -> Dict[str, sympy.Expr]:
         'Battery_0_Length',
         'Battery_0_Width',
         'Battery_0_Thickness',
+        'Prop_0_Weight',
     ])
 
     param = 0
@@ -86,48 +88,50 @@ def quad_copter_props(data: 'TestbenchData') -> Dict[str, sympy.Expr]:
             print("WARNING: missing data for", name)
         return result[name]
 
-    mass = fit('aircraft.mass', C() + C() * L0 + C() * L1 + B0)
+    mass = fit('aircraft.mass', C() + C() * L0 + C() * L1 + B0 + 4 * P0)
 
     x_cm = fit('aircraft.x_cm', (C() + C() * B0) / mass)
     y_cm = fit('aircraft.y_cm', (C() + C() * B0) / mass)
-    z_cm = fit('aircraft.z_cm', (C() + C() * L0 + C() * L1 + C() * L1 ** 2
-                                 + C() * B0 + C() * B0 * B2) / mass)
+    z_cm = fit('aircraft.z_cm', (C()
+                                 + C() * L0 + C() * L1 + C() * L1 ** 2
+                                 + C() * B0 + C() * B0 * B2
+                                 + C() * P0 + C() * P0 * L1) / mass)
 
     if True:
         # we compensate for the center of gravity offset
         fit('aircraft.Ixx', C() + C() * L0 + C() * L1
-            + C() * L0 ** 2 + C() * L0 * L1 + C() * L1 ** 2
-            + C() * L0 ** 3 + C() * L0 ** 2 * L1 + C() * L0 * L1 ** 2 + C() * L1 ** 3
+            + C() * L0 ** 2 + C() * L1 ** 2
+            + C() * L0 ** 3 + C() * L0 ** 2 * L1 + C() * L1 ** 3
             + C() * B0 + C() * B0 * B1 + C() * B0 * B2 + C() * B0 * B3
             + C() * B0 * B1 ** 2 + C() * B0 * B2 ** 2 + C() * B0 * B3 ** 2
             - mass * (y_cm ** 2 + z_cm ** 2))
         fit('aircraft.Iyy', C() + C() * L0 + C() * L1
-            + C() * L0 ** 2 + C() * L0 * L1 + C() * L1 ** 2
-            + C() * L0 ** 3 + C() * L0 ** 2 * L1 + C() * L0 * L1 ** 2 + C() * L1 ** 3
+            + C() * L0 ** 2 + C() * L1 ** 2
+            + C() * L0 ** 3 + C() * L0 ** 2 * L1 + C() * L1 ** 3
             + C() * B0 + C() * B0 * B1 + C() * B0 * B2 + C() * B0 * B3
             + C() * B0 * B1 ** 2 + C() * B0 * B2 ** 2 + C() * B0 * B3 ** 2
             - mass * (x_cm ** 2 + z_cm ** 2))
         fit('aircraft.Izz', C() + C() * L0 + C() * L1
-            + C() * L0 ** 2 + C() * L0 * L1 + C() * L1 ** 2
-            + C() * L0 ** 3 + C() * L0 ** 2 * L1 + C() * L0 * L1 ** 2 + C() * L1 ** 3
+            + C() * L0 ** 2 + C() * L1 ** 2
+            + C() * L0 ** 3 + C() * L0 ** 2 * L1 + C() * L1 ** 3
             + C() * B0 + C() * B0 * B1 + C() * B0 * B2 + C() * B0 * B3
             + C() * B0 * B1 ** 2 + C() * B0 * B2 ** 2 + C() * B0 * B3 ** 2
             - mass * (x_cm ** 2 + y_cm ** 2))
         fit('aircraft.Ixy', C() + C() * L0 + C() * L1
-            + C() * L0 ** 2 + C() * L0 * L1 + C() * L1 ** 2
-            + C() * L0 ** 3 + C() * L0 ** 2 * L1 + C() * L0 * L1 ** 2 + C() * L1 ** 3
+            + C() * L0 ** 2 + C() * L1 ** 2
+            + C() * L0 ** 3 + C() * L0 ** 2 * L1 + C() * L1 ** 3
             + C() * B0 + C() * B0 * B1 + C() * B0 * B2 + C() * B0 * B3
             + C() * B0 * B1 ** 2 + C() * B0 * B2 ** 2 + C() * B0 * B3 ** 2
             + mass * x_cm * y_cm)
         fit('aircraft.Ixz', C() + C() * L0 + C() * L1
-            + C() * L0 ** 2 + C() * L0 * L1 + C() * L1 ** 2
-            + C() * L0 ** 3 + C() * L0 ** 2 * L1 + C() * L0 * L1 ** 2 + C() * L1 ** 3
+            + C() * L0 ** 2 + C() * L1 ** 2
+            + C() * L0 ** 3 + C() * L0 ** 2 * L1 + C() * L1 ** 3
             + C() * B0 + C() * B0 * B1 + C() * B0 * B2 + C() * B0 * B3
             + C() * B0 * B1 ** 2 + C() * B0 * B2 ** 2 + C() * B0 * B3 ** 2
             + mass * x_cm * z_cm)
         fit('aircraft.Iyz', C() + C() * L0 + C() * L1
-            + C() * L0 ** 2 + C() * L0 * L1 + C() * L1 ** 2
-            + C() * L0 ** 3 + C() * L0 ** 2 * L1 + C() * L0 * L1 ** 2 + C() * L1 ** 3
+            + C() * L0 ** 2 + C() * L1 ** 2
+            + C() * L0 ** 3 + C() * L0 ** 2 * L1 + C() * L1 ** 3
             + C() * B0 + C() * B0 * B1 + C() * B0 * B2 + C() * B0 * B3
             + C() * B0 * B1 ** 2 + C() * B0 * B2 ** 2 + C() * B0 * B3 ** 2
             + mass * y_cm * z_cm)
@@ -173,3 +177,7 @@ def run(args=None):
     formulas = quad_copter_props(data)
     for key, val in formulas.items():
         print(key, "=", val)
+
+
+if __name__ == '__main__':
+    run()
