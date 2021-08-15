@@ -167,6 +167,7 @@ class TestbenchData():
                                 components[key + "_Name"] = val
                                 components[key + "_Weight"] = float(PROPELLERS[val]['Weight'])
                                 components[key + "_Diameter"] = float(PROPELLERS[val]['DIAMETER'])
+                                components[key + "_Thickness"] = float(PROPELLERS[val]['HUB_THICKNESS'])
                             elif key.startswith('Motor_'):
                                 components[key + "_Name"] = val
                                 components[key + "_Weight"] = float(MOTORS[val]['WEIGHT'])
