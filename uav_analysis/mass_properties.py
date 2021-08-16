@@ -50,6 +50,86 @@ def translate_inertia(
     return inertia + mass * mat
 
 
+def quad_copter_fixed_bemp(data: 'TestbenchData') -> Dict[str, sympy.Expr]:
+    L0 = sympy.Symbol('Length_0')  # arm length
+    L1 = sympy.Symbol('Length_1')  # support leg
+
+    input_data = data.get_tables([
+        'Length_0',
+        'Length_1',
+    ])
+
+    param = 0
+
+    def C():
+        nonlocal param
+        param += 1
+        return sympy.Symbol("param_" + str(param))
+
+    result = dict()
+
+    def fit(name, expr):
+        if data.has_field(name):
+            subs, error = approximate(expr, input_data, data.get_table(name))
+            print("INFO:", name, "approx error", error)
+            result[name] = expr.subs(subs)
+        else:
+            result[name] = 0.0
+            print("WARNING: missing data for", name)
+        return result[name]
+
+    mass = fit('aircraft.mass', C() + C() * L0 + C() * L1)
+
+    x_cm = fit('aircraft.x_cm', C() / mass)
+    y_cm = fit('aircraft.y_cm', C() / mass)
+    z_cm = fit('aircraft.z_cm', (C() + C() * L0 + C() * L1 + C() * L1 ** 2) / mass)
+
+    # we compensate for the center of gravity offset
+    fit('aircraft.Ixx', C() + C() * L0 + C() * L1
+        + C() * L0 ** 2 + C() * L1 ** 2
+        + C() * L0 ** 3 + C() * L0 ** 2 * L1 + C() * L1 ** 3
+        - mass * (y_cm ** 2 + z_cm ** 2))
+    fit('aircraft.Iyy', C() + C() * L0 + C() * L1
+        + C() * L0 ** 2 + C() * L1 ** 2
+        + C() * L0 ** 3 + C() * L0 ** 2 * L1 + C() * L1 ** 3
+        - mass * (x_cm ** 2 + z_cm ** 2))
+    fit('aircraft.Izz', C() + C() * L0 + C() * L1
+        + C() * L0 ** 2 + C() * L1 ** 2
+        + C() * L0 ** 3 + C() * L0 ** 2 * L1 + C() * L1 ** 3
+        - mass * (x_cm ** 2 + y_cm ** 2))
+    fit('aircraft.Ixy', C() + C() * L0 + C() * L1
+        + C() * L0 ** 2 + C() * L1 ** 2
+        + C() * L0 ** 3 + C() * L0 ** 2 * L1 + C() * L1 ** 3
+        + mass * x_cm * y_cm)
+    fit('aircraft.Ixz', C() + C() * L0 + C() * L1
+        + C() * L0 ** 2 + C() * L1 ** 2
+        + C() * L0 ** 3 + C() * L0 ** 2 * L1 + C() * L1 ** 3
+        + mass * x_cm * z_cm)
+    fit('aircraft.Iyz', C() + C() * L0 + C() * L1
+        + C() * L0 ** 2 + C() * L1 ** 2
+        + C() * L0 ** 3 + C() * L0 ** 2 * L1 + C() * L1 ** 3
+        + mass * y_cm * z_cm)
+
+    fit('aircraft.X_fuseuu', C() + C() * L0 + C() * L1)
+    fit('aircraft.Y_fusevv', C() + C() * L0 + C() * L1)
+    fit('aircraft.Z_fuseww', C() + C() * L0 + C() * L1)
+
+    fit('Prop_0_x', C() * L0)
+    fit('Prop_0_y', C() * L0)
+    fit('Prop_0_z', C())
+    fit('Prop_1_x', C() * L0)
+    fit('Prop_1_y', C() * L0)
+    fit('Prop_1_z', C())
+    fit('Prop_2_x', C() * L0)
+    fit('Prop_2_y', C() * L0)
+    fit('Prop_2_z', C())
+    fit('Prop_3_x', C() * L0)
+    fit('Prop_3_y', C() * L0)
+    fit('Prop_3_z', C())
+
+    return result
+
+
 def quad_copter_batt_prop(data: 'TestbenchData') -> Dict[str, sympy.Expr]:
     L0 = sympy.Symbol('Length_0')  # arm length
     L1 = sympy.Symbol('Length_1')  # support leg
@@ -308,8 +388,9 @@ def run(args=None):
     parser.add_argument('file', type=str,  nargs="+", metavar='FILE',
                         help='a zip log files to read')
     parser.add_argument('--model',
-                        default='quad-copter-batt-prop',
+                        default='quad-copter-fixed-bemp',
                         choices=[
+                            'quad-copter-fixed-bemp',
                             'quad-copter-batt-prop',
                             'quad-copter-batt-prop-motor',
                         ],
@@ -321,7 +402,10 @@ def run(args=None):
         print("Reading", file)
         data.load(file)
 
-    if args.model == 'quad-copter-batt-prop':
+    print("Using model:", args.model)
+    if args.model == 'quad-copter-fixed-bemp':
+        formulas = quad_copter_fixed_bemp(data)
+    elif args.model == 'quad-copter-batt-prop':
         formulas = quad_copter_batt_prop(data)
     elif args.model == 'quad-copter-batt-prop-motor':
         formulas = quad_copter_batt_prop_motor(data)
