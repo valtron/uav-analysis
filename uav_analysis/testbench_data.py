@@ -171,6 +171,9 @@ class TestbenchData():
                             elif key.startswith('Motor_'):
                                 components[key + "_Name"] = val
                                 components[key + "_Weight"] = float(MOTORS[val]['WEIGHT'])
+                                components[key + "_Length"] = float(MOTORS[val]['LENGTH'])
+                                components[key + "_TotalLength"] = float(MOTORS[val]['TOTAL_LENGTH'])
+                                components[key + "_CanLength"] = float(MOTORS[val]['CAN_LENGTH'])
 
         # patch and lookup static values
         for entry in byguid.values():

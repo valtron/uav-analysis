@@ -50,7 +50,7 @@ def translate_inertia(
     return inertia + mass * mat
 
 
-def quad_copter_props(data: 'TestbenchData') -> Dict[str, sympy.Expr]:
+def quad_copter_batt_prop(data: 'TestbenchData') -> Dict[str, sympy.Expr]:
     L0 = sympy.Symbol('Length_0')  # arm length
     L1 = sympy.Symbol('Length_1')  # support leg
     B0 = sympy.Symbol('Battery_0_Weight')
@@ -203,6 +203,103 @@ def quad_copter_props(data: 'TestbenchData') -> Dict[str, sympy.Expr]:
     return result
 
 
+def quad_copter_batt_prop_motor(data: 'TestbenchData') -> Dict[str, sympy.Expr]:
+    L0 = sympy.Symbol('Length_0')  # arm length
+    L1 = sympy.Symbol('Length_1')  # support leg
+    B0 = sympy.Symbol('Battery_0_Weight')
+    B1 = sympy.Symbol('Battery_0_Length')
+    B2 = sympy.Symbol('Battery_0_Width')
+    B3 = sympy.Symbol('Battery_0_Thickness')
+    P0 = sympy.Symbol('Prop_0_Weight')
+    P1 = sympy.Symbol('Prop_0_Diameter')
+    P2 = sympy.Symbol('Prop_0_Thickness')
+    M0 = sympy.Symbol('Motor_0_Weight')
+    M1 = sympy.Symbol('Motor_0_TotalLength')
+    M2 = sympy.Symbol('Motor_0_Length')
+    M3 = sympy.Symbol('Motor_0_CanLength')
+
+    input_data = data.get_tables([
+        'Length_0',
+        'Length_1',
+        'Battery_0_Weight',
+        'Battery_0_Length',
+        'Battery_0_Width',
+        'Battery_0_Thickness',
+        'Prop_0_Weight',
+        'Prop_0_Diameter',
+        'Prop_0_Thickness',
+        'Motor_0_Weight',
+        'Motor_0_TotalLength',
+        'Motor_0_Length',
+        'Motor_0_CanLength',
+    ])
+
+    param = 0
+
+    def C():
+        nonlocal param
+        param += 1
+        return sympy.Symbol("param_" + str(param))
+
+    result = dict()
+
+    def fit(name, expr):
+        if data.has_field(name):
+            subs, error = approximate(expr, input_data, data.get_table(name))
+            print("INFO:", name, "approx error", error)
+            result[name] = expr.subs(subs)
+        else:
+            result[name] = 0.0
+            print("WARNING: missing data for", name)
+        return result[name]
+
+    mass = fit('aircraft.mass', C() + C() * L0 + C() * L1 + B0 + 4 * P0 + 4 * M0)
+
+    x_cm = fit('aircraft.x_cm', (
+        C()
+        + C() * B0 + C() * B0 * B1 + C() * B0 * B3
+    ) / mass)
+    y_cm = fit('aircraft.y_cm', (
+        C()
+        + C() * B0 + C() * B0 * B3 + C() * B0 * B3
+    ) / mass)
+    z_cm = fit('aircraft.z_cm', (
+        C()
+        + L0 * C()
+        + L1 * (C() + C() * L1)
+        + B0 * (C() + C() * B2)
+        + M0 * (C() + C() * M1 + C() * M2)
+        + P0 * (C() + C() * P1 + C() * P2 + C() * M1 + C() * M2 + C() * M3)
+    ) / mass)
+
+    if False:
+        fit('aircraft.X_fuseuu', C() + C() * L0 + C() * L1
+            + C() * B1 * B2 + C() * B1 * B3 + C() * B2 * B3
+            + C() * P1 + C() * P2 + C() * P1 * P2 + C() * P1 * P1)
+        fit('aircraft.Y_fusevv', C() + C() * L0 + C() * L1
+            + C() * B1 * B2 + C() * B1 * B3 + C() * B2 * B3
+            + C() * P1 + C() * P2 + C() * P1 * P2 + C() * P1 * P1)
+        fit('aircraft.Z_fuseww', C() + C() * L0 + C() * L1
+            + C() * B1 * B2 + C() * B1 * B3 + C() * B2 * B3
+            + C() * P1 + C() * P2 + C() * P1 * P2 + C() * P1 * P1)
+
+    if False:
+        fit('Prop_0_x', C() * L0)
+        fit('Prop_0_y', C() * L0)
+        fit('Prop_0_z', C())
+        fit('Prop_1_x', C() * L0)
+        fit('Prop_1_y', C() * L0)
+        fit('Prop_1_z', C())
+        fit('Prop_2_x', C() * L0)
+        fit('Prop_2_y', C() * L0)
+        fit('Prop_2_z', C())
+        fit('Prop_3_x', C() * L0)
+        fit('Prop_3_y', C() * L0)
+        fit('Prop_3_z', C())
+
+    return result
+
+
 def run(args=None):
     import argparse
 
@@ -210,6 +307,13 @@ def run(args=None):
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('file', type=str,  nargs="+", metavar='FILE',
                         help='a zip log files to read')
+    parser.add_argument('--model',
+                        default='quad-copter-batt-prop',
+                        choices=[
+                            'quad-copter-batt-prop',
+                            'quad-copter-batt-prop-motor',
+                        ],
+                        help='selects the analysis model')
     args = parser.parse_args(args)
 
     data = TestbenchData()
@@ -217,7 +321,14 @@ def run(args=None):
         print("Reading", file)
         data.load(file)
 
-    formulas = quad_copter_props(data)
+    if args.model == 'quad-copter-batt-prop':
+        formulas = quad_copter_batt_prop(data)
+    elif args.model == 'quad-copter-batt-prop-motor':
+        formulas = quad_copter_batt_prop_motor(data)
+    else:
+        print("Unknown analyis model:", args.model)
+        return
+
     for key, val in formulas.items():
         print(key, "=", val)
 
