@@ -141,7 +141,7 @@ class TestbenchData():
                         for line in csv.DictReader(lines):
                             line = dict(line)
                             record(line['GUID'], line)
-                elif os.path.basename(name) == 'FlightDyn.inp':
+                elif os.path.basename(name) in ['FlightDyn.inp', 'FlightDyn_Path1.inp']:
                     guid = os.path.basename(os.path.dirname(name))
                     with file.open(name) as content:
                         lines = content.readlines()
@@ -167,12 +167,14 @@ class TestbenchData():
                                 components[key + "_Name"] = val
                                 components[key + "_Weight"] = float(PROPELLERS[val]['Weight'])
                                 components[key + "_Diameter"] = float(PROPELLERS[val]['DIAMETER'])
-                                components[key + "_Thickness"] = float(PROPELLERS[val]['HUB_THICKNESS'])
+                                components[key +
+                                           "_Thickness"] = float(PROPELLERS[val]['HUB_THICKNESS'])
                             elif key.startswith('Motor_'):
                                 components[key + "_Name"] = val
                                 components[key + "_Weight"] = float(MOTORS[val]['WEIGHT'])
                                 components[key + "_Length"] = float(MOTORS[val]['LENGTH'])
-                                components[key + "_TotalLength"] = float(MOTORS[val]['TOTAL_LENGTH'])
+                                components[key +
+                                           "_TotalLength"] = float(MOTORS[val]['TOTAL_LENGTH'])
                                 components[key + "_CanLength"] = float(MOTORS[val]['CAN_LENGTH'])
 
         # patch and lookup static values
