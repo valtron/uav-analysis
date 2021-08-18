@@ -17,14 +17,14 @@
 import argparse
 import sys
 
-from uav_analysis import testbench_data, mass_properties
+from uav_analysis import testbench_data, mass_properties, bemp_combinations
 
 
 def run():
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('command', help="""
-    testbench-data, mass-properties
+    testbench-data, mass-properties, bemp-combinations
     """)
     args = parser.parse_args(sys.argv[1:2])
 
@@ -36,6 +36,8 @@ def run():
         testbench_data.run(args=sys.argv[2:])
     elif args.command == 'mass-properties':
         mass_properties.run(args=sys.argv[2:])
+    elif args.command == 'bemp-combinations':
+        bemp_combinations.run(args=sys.argv[2:])
     else:
         parser.print_help()
 

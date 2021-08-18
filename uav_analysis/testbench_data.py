@@ -23,24 +23,7 @@ import os
 import re
 import zipfile
 
-
-def load_static_data(name: str) -> Dict[str, Dict[str, Any]]:
-    filename = os.path.abspath(os.path.dirname(__file__))
-    filename = os.path.join(filename, 'data', name + '.csv')
-
-    result = dict()
-    with open(filename) as file:
-        reader = csv.DictReader(file)
-        for line in reader:
-            result[line['Name']] = dict(line)
-
-    return result
-
-
-BATTERIES = load_static_data('Battery')
-PROPELLERS = load_static_data('Propeller')
-WINGS = load_static_data('Wing')
-MOTORS = load_static_data('Motor')
+from uav_analysis.bemp_combinations import BATTERIES, PROPELLERS, MOTORS
 
 
 def parse_fortran_value(value: str) -> Any:
