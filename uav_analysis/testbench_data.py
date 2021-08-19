@@ -124,7 +124,9 @@ class TestbenchData():
                         for line in csv.DictReader(lines):
                             line = dict(line)
                             record(line['GUID'], line)
-                elif os.path.basename(name) in ['FlightDyn.inp', 'FlightDyn_Path1.inp']:
+                elif os.path.basename(name) in ['FlightDyn.inp',
+                                                'FlightDyn_Path1.inp',
+                                                'FlightDynamicsPath1.inp']:
                     guid = os.path.basename(os.path.dirname(name))
                     with file.open(name) as content:
                         lines = content.readlines()
