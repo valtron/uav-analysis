@@ -17,7 +17,7 @@
 import argparse
 import sys
 
-from uav_analysis import testbench_data, mass_properties, bemp_combinations
+from uav_analysis import testbench_data, mass_properties, bemp_combinations, bemp_fdm_generator
 
 
 def run():
@@ -38,6 +38,8 @@ def run():
         mass_properties.run(args=sys.argv[2:])
     elif args.command == 'bemp-combinations':
         bemp_combinations.run(args=sys.argv[2:])
+    elif args.command == 'bemp-fdm-generator':
+        bemp_fdm_generator.run(args=sys.argv[2:])
     else:
         parser.print_help()
 

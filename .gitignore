@@ -11,3 +11,4 @@ __pycache__
 *.npz
 *.DS_Store
 .~lock*
+*.out
