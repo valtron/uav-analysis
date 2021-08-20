@@ -166,6 +166,17 @@ def run(args=None):
         MC = file_object.readline().strip().split()
         file_object.close()
 
+        # TODO: do better parsing and error checking
+        try:
+            for i in range(3, 11):
+                float(MV[i])
+                float(MP[i])
+                float(MC[i])
+        except:
+            print('\nInvalid fdm output detected for', combination["Battery.Name"],
+                  combination["Motor.Name"], combination["Propeller.Name"])
+            continue
+
         row = ""
         row += combination["Battery.Name"] + ","
         row += combination["Motor.Name"] + ","
