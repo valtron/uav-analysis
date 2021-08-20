@@ -141,7 +141,7 @@ def run(args=None):
         os.system(cmd)
         file_object = open(combo_name, 'r')
         # read intro comments
-        for rownum in range(17):
+        for rownum in range(3):
             file_object.readline()
         MV = file_object.readline().strip().split()
         MP = file_object.readline().strip().split()
