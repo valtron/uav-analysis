@@ -135,11 +135,12 @@ def run(args=None):
     args = parser.parse_args(args)
 
     generator = battery_motor_propeller_generator(True)
-    output_header = "Battery,Motor,Propeller," \
+    output_header = "Battery,Motor,Propeller,Battery_Weight,Battery_Capacity,Motor_Weight,Propeller_Weight," \
                     "MV_omega_rad,MV_omega_RPM,MV_Voltage,MV_Thrust,MV_Torque,MV_Power,MV_Current,MV_Efficiency," \
                     "MP_omega_rad,MP_omega_RPM,MP_Voltage,MP_Thrust,MP_Torque,MP_Power,MP_Current,MP_Efficiency," \
                     "MC_omega_rad,MC_omega_RPM,MC_Voltage,MC_Thrust,MC_Torque,MC_Power,MC_Current,MC_Efficiency," \
-                    "MaxPower,MaxCur,PeakCur,ContCur\n"
+                    "MaxPower,MaxCur,PeakCur,ContCur," \
+                    "Aircraft_Weight,Aircraft_Thrust,Aircraft_Thrust2Weight,Aircraft_FlightTime\n"
     res_fname = args.output
     res_file = open(res_fname, 'w')
     res_file.write(output_header)
@@ -167,15 +168,29 @@ def run(args=None):
 
         row = ""
         row += combination["Battery.Name"] + ","
-        row += combination["Motor.MODEL"] + ","
+        row += combination["Motor.Name"] + ","
         row += combination["Propeller.Name"] + ","
+        row += combination['Battery.WEIGHT'] + ","
+        row += combination['Battery.CAPACITY'] + ","
+        row += combination['Motor.WEIGHT'] + ","
+        row += combination['Propeller.Weight'] + ","
         row += MV[3] + "," + MV[4] + "," + MV[5] + "," + MV[6] + "," + \
             MV[7] + "," + MV[8] + "," + MV[9] + "," + MV[10] + ","
         row += MP[3] + "," + MP[4] + "," + MP[5] + "," + MP[6] + "," + \
             MP[7] + "," + MP[8] + "," + MP[9] + "," + MP[10] + ","
         row += MC[3] + "," + MC[4] + "," + MC[5] + "," + MC[6] + "," + \
             MC[7] + "," + MC[8] + "," + MC[9] + "," + MC[10] + ","
-        row += MC[11] + "," + MC[12] + "," + MC[13] + "," + MC[14] + "\n"
+        row += MC[11] + "," + MC[12] + "," + MC[13] + "," + MC[14] + ","
+
+        # estimations for full thrust flight
+        aircraft_weight = 0.347232355870562 + float(combination['Battery.WEIGHT']) + \
+            4 * float(combination['Motor.WEIGHT']) + 4 * float(combination['Propeller.Weight'])
+        aircraft_thrust = 4 * float(MV[6])
+        aircraft_thrust2weight = aircraft_thrust / aircraft_weight
+        aircraft_flight_time = float(combination['Battery.CAPACITY']) * 0.8 / (4 * float(MV[9]))
+
+        row += str(aircraft_weight) + "," + str(aircraft_thrust) + "," + \
+            str(aircraft_thrust2weight) + "," + str(aircraft_flight_time) + "\n"
         res_file.write(row)
 
         sys.stdout.write('\r')
