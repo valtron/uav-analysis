@@ -1,7 +1,23 @@
-import os, sys
-import csv
-from bemp_combinations import battery_motor_propeller_generator
-import timeit
+#!/usr/bin/env python3
+# Copyright (C) 2021, Gyorgy Kalmar
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+import os
+import sys
+
+from uav_analysis.bemp_combinations import battery_motor_propeller_generator
 
 input_skeleton_pre = """&aircraft_data
    aircraft%cname          = 'UAV'      ! M  name of aircraft
@@ -57,8 +73,8 @@ def generate_input(bemp_comb, propdata):
     str_return += input_skeleton_pre
     str_return += "   propeller(1)%cname = '{}'\n".format(bemp_comb["Propeller.MODEL"])
     str_return += "   propeller(1)%ctype = 'MR'\n"
-    str_return += "   propeller(1)%prop_fname = '{}{}'\n".format(propdata,
-                                                                  bemp_comb["Propeller.Performance_File"])
+    str_return += "   propeller(1)%prop_fname = '{}'\n".format(
+        os.path.join(propdata, bemp_comb["Propeller.Performance_File"]))
     str_return += "   propeller(1)%x = 0\n"
     str_return += "   propeller(1)%y = 0\n"
     str_return += "   propeller(1)%z = 0\n"
@@ -96,10 +112,11 @@ def run(args=None):
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('--propdata',
-                        default='uav_analysis/data/propeller/',
+                        default=os.path.relpath(os.path.join(
+                            os.path.dirname(__file__), 'data', 'propeller')),
                         type=str,
                         metavar='DIR',
-                        help="path to propeller data")
+                        help="path to propeller data directory")
     parser.add_argument('--output',
                         default='result.csv',
                         type=str,
@@ -108,7 +125,7 @@ def run(args=None):
     parser.add_argument('--limit',
                         default=-1,
                         type=int,
-                        metavar='STOP CRITERIA',
+                        metavar='NUM',
                         help="process only LIMIT number of combinations")
     parser.add_argument('--fdm',
                         default='new_fdm',
@@ -133,11 +150,11 @@ def run(args=None):
         num_of_combinations = args.limit
     print("Progress: ")
     for combination in generator:
-        file_object = open('input.txt', 'w')
+        file_object = open('fdm_input.txt', 'w')
         file_object.write(generate_input(combination, args.propdata))
         file_object.close()
-        combo_name = "output.txt"
-        cmd = "{} < input.txt > {}".format(args.fdm, combo_name)
+        combo_name = "fdm_output.txt"
+        cmd = "{} < fdm_input.txt > {}".format(args.fdm, combo_name)
         os.system(cmd)
         file_object = open(combo_name, 'r')
         # read intro comments
@@ -152,12 +169,12 @@ def run(args=None):
         row += combination["Battery.Name"] + ","
         row += combination["Motor.MODEL"] + ","
         row += combination["Propeller.Name"] + ","
-        row += MV[3] + "," + MV[4] + "," + MV[5] + "," + MV[6] + "," + MV[7] + "," + MV[8] + "," + MV[9] + "," + \
-               MV[10] + ","
-        row += MP[3] + "," + MP[4] + "," + MP[5] + "," + MP[6] + "," + MP[7] + "," + MP[8] + "," + MP[9] + "," + \
-               MP[10] + ","
-        row += MC[3] + "," + MC[4] + "," + MC[5] + "," + MC[6] + "," + MC[7] + "," + MC[8] + "," + MC[9] + "," + \
-               MC[10] + ","
+        row += MV[3] + "," + MV[4] + "," + MV[5] + "," + MV[6] + "," + \
+            MV[7] + "," + MV[8] + "," + MV[9] + "," + MV[10] + ","
+        row += MP[3] + "," + MP[4] + "," + MP[5] + "," + MP[6] + "," + \
+            MP[7] + "," + MP[8] + "," + MP[9] + "," + MP[10] + ","
+        row += MC[3] + "," + MC[4] + "," + MC[5] + "," + MC[6] + "," + \
+            MC[7] + "," + MC[8] + "," + MC[9] + "," + MC[10] + ","
         row += MC[11] + "," + MC[12] + "," + MC[13] + "," + MC[14] + "\n"
         res_file.write(row)
 
@@ -171,3 +188,7 @@ def run(args=None):
     print("---------------------------------------")
     print("Results are saved in file: ", res_fname)
     res_file.close()
+
+
+if __name__ == '__main__':
+    run()

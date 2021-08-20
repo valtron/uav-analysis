@@ -24,7 +24,7 @@ def run():
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('command', help="""
-    testbench-data, mass-properties, bemp-combinations
+    testbench-data, mass-properties, bemp-combinations, bemp-fdm-generator
     """)
     args = parser.parse_args(sys.argv[1:2])
 
