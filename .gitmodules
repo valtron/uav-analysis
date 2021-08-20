@@ -1,0 +1,3 @@
+[submodule "flight-dynamics-model"]
+	path = flight-dynamics-model
+	url = git@github.com:symbench/flight-dynamics-model.git
