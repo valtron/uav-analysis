@@ -128,7 +128,7 @@ def run(args=None):
                         metavar='NUM',
                         help="process only LIMIT number of combinations")
     parser.add_argument('--fdm',
-                        default='new_fdm',
+                        default='new_fdm_step0',
                         type=str,
                         metavar='PATH',
                         help="path to fdm executable")
