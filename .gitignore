@@ -15,4 +15,4 @@ __pycache__
 
 fdm_input.txt
 fdm_output.txt
-result.csv
+/*.csv
