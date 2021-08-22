@@ -14,6 +14,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import math
 import os
 import sys
 
@@ -169,10 +170,22 @@ def run(args=None):
             MC[7] + "," + MC[8] + "," + MC[9] + "," + MC[10] + ","
         row += MC[11] + "," + MC[12] + "," + MC[13] + "," + MC[14] + ","
 
-        # estimations for full thrust flight
-        aircraft_thrust = 4 * float(MV[6])
-        aircraft_thrust2weight = aircraft_thrust / combination['Aircraft.Mass']
-        aircraft_flight_time = float(combination['Battery.CAPACITY']) * 0.8 / (4 * float(MV[9]))
+        # maximum achievable thrust
+        aircraft_thrust = 1e99
+        aircraft_current = None
+        for M in [MV, MP, MC]:
+            t = float(M[6])  # thrust
+            c = float(M[9])  # current
+            if math.isnan(t) or math.isnan(c):
+                continue
+            if t < aircraft_thrust:
+                aircraft_thrust = t
+                aircraft_current = c
+        if aircraft_current is None:
+            continue
+
+        aircraft_thrust2weight = aircraft_thrust / (combination['Aircraft.Mass'] * 9.81)
+        aircraft_flight_time = float(combination['Battery.CAPACITY']) * 0.8 / (4 * aircraft_current)
 
         row += str(combination['Aircraft.Mass']) + "," + str(aircraft_thrust) + "," + \
             str(aircraft_thrust2weight) + "," + str(aircraft_flight_time) + "\n"
