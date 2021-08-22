@@ -19,68 +19,22 @@ import sys
 
 from uav_analysis.bemp_combinations import battery_motor_propeller_generator
 
-input_skeleton_pre = """&aircraft_data
-   aircraft%cname          = 'UAV'      ! M  name of aircraft
-   aircraft%ctype          = 'SymCPS UAV Design' ! M  type of aircraft
-   aircraft%num_wings      = 0 ! M number of wings in aircraft
-   aircraft%mass          = 1.251158179559168
-   aircraft%x_cm          = 0.004262667602479541
-   aircraft%y_cm          = 0.004262257946293246
-   aircraft%z_cm          = -12.185845568919374
-   aircraft%x_fuse          = 0.004262667602479541
-   aircraft%y_fuse          = 0.004262257946293246
-   aircraft%z_fuse          = -12.185845568919374
-   aircraft%X_fuseuu      = 15197.920416918165
-   aircraft%Y_fusevv      = 15197.920931262906
-   aircraft%Z_fuseww      = 27152.33937824657
-   aircraft%Ixx           = 26102.092848709824
-   aircraft%Iyy           = 26102.092914663815
-   aircraft%Izz           = 48260.9402281981
-   aircraft%uc_initial     = 0.4d0, 0.5d0, 0.6d0, 0.7d0 ! inputs for controls
-   aircraft%time           = 0.d0        ! initial time (default = 0.)
-   aircraft%dt             = 1.d-03      ! s  fixed time step
-   aircraft%dt_output      = 1.0d0       ! s  time between output lines
-   aircraft%time_end       = 1000.d0        ! s  end time 
-   aircraft%Unwind         = 0.d0        ! North wind speed in world frame
-   aircraft%Vewind         = 0.d0        ! East wind speed in  world frame
-   aircraft%Wdwind         = 0.d0        ! Down wind speed in world frame
-   aircraft%debug          = 0           ! verbose printouts from fderiv
-   aircraft%num_propellers  = 1
-   aircraft%num_batteries   = 1
-   aircraft%i_analysis_type = 1 
-   aircraft%x_initial      = 0.d0, 0.d0, 0.d0, 0.d0, 0.d0, 0.d0, 1.d0, 0.d0, 0.d0, 0.d0, 0.d0, 0.d0, 0.d0
-   aircraft%uc_initial     = 0.5d0, 0.5d0, 0.5d0, 0.5d0
-
-!   Propeller(1 uses components named Prop_2, Motor_2, ESC_2"""
-
-input_skeleton_post = """!   Controls
-   control%i_flight_path = 4
-   control%requested_lateral_speed = 37.0 
-   control%requested_vertical_speed = 0.0
-   control%iaileron = 5 
-   control%iflap = 6 
-   control%Q_position = 1.0 
-   control%Q_velocity = 1.0
-   control%Q_angular_velocity = 1.0 
-   control%Q_angles = 1.0 
-   control%R= 50.0 
-/
-"""
-
 
 def generate_input(bemp_comb, propdata):
-    str_return = ""
-    str_return += input_skeleton_pre
+    str_return = "&aircraft_data\n"
+    str_return += "   aircraft%cname           = 'UAV'\n"
+    str_return += "   aircraft%ctype           = 'SymCPS UAV Design'\n"
+    str_return += "   aircraft%num_wings       = 0\n"
+    str_return += "   aircraft%mass            = {}\n".format(bemp_comb["Aircraft.Mass"])
+    str_return += "   aircraft%num_propellers  = 1\n"
+    str_return += "   aircraft%num_batteries   = 1\n"
+    str_return += "   aircraft%i_analysis_type = 0\n"
+    str_return += "\n"
+    str_return += "!   Propeller(1 uses components named Prop_0, Motor_0, ESC_0\n"
     str_return += "   propeller(1)%cname = '{}'\n".format(bemp_comb["Propeller.MODEL"])
     str_return += "   propeller(1)%ctype = 'MR'\n"
     str_return += "   propeller(1)%prop_fname = '{}'\n".format(
         os.path.join(propdata, bemp_comb["Propeller.Performance_File"]))
-    str_return += "   propeller(1)%x = 0\n"
-    str_return += "   propeller(1)%y = 0\n"
-    str_return += "   propeller(1)%z = 0\n"
-    str_return += "   propeller(1)%nx = -0.0\n"
-    str_return += "   propeller(1)%ny = -0.0\n"
-    str_return += "   propeller(1)%nz = -1.0\n"
     str_return += "   propeller(1)%radius = {}\n".format(float(bemp_comb["Propeller.DIAMETER"]) / 2.0)
     str_return += "   propeller(1)%Ir = {}\n".format(10.0)  # unknown value but not used
     str_return += "   propeller(1)%motor_fname = '{}'\n".format(bemp_comb["Motor.MODEL"])  # not used
@@ -90,9 +44,9 @@ def generate_input(bemp_comb, propdata):
     str_return += "   propeller(1)%I_idle = {}\n".format(bemp_comb["Motor.IO_IDLE_CURRENT@10V"])
     str_return += "   propeller(1)%maxpower = {}\n".format(bemp_comb["Motor.MAX_POWER"])
     str_return += "   propeller(1)%Rw = {}\n".format(float(bemp_comb["Motor.INTERNAL_RESISTANCE"]) / 1000.0)
-    str_return += "   propeller(1)%icontrol = 4\n"
+    str_return += "   propeller(1)%icontrol = 1\n"
     str_return += "   propeller(1)%ibattery = 1\n"
-    str_return += "   propeller(1)%spin = -1\n"
+    str_return += "   propeller(1)%spin = 1\n"
     str_return += "\n"
     str_return += "!   Battery(1) is component named: Battery_0\n"
     str_return += "   battery(1)%num_cells = {}\n".format(int(bemp_comb["Battery.NUMBER_OF_CELLS"][0]))
@@ -100,8 +54,7 @@ def generate_input(bemp_comb, propdata):
     str_return += "   battery(1)%capacity = {}\n".format(bemp_comb["Battery.CAPACITY"])
     str_return += "   battery(1)%C_Continuous = {}\n".format(bemp_comb["Battery.CONT_DISCHARGE_RATE"])
     str_return += "   battery(1)%C_Peak = {}\n".format(bemp_comb["Battery.PEAK_DISCHARGE_RATE"])
-    str_return += "\n"
-    str_return += input_skeleton_post
+    str_return += "/\n"
 
     return str_return
 
@@ -132,6 +85,15 @@ def run(args=None):
                         type=str,
                         metavar='PATH',
                         help="path to fdm executable")
+    parser.add_argument('--propeller',
+                        metavar='NAME',
+                        help='limits the search space to this propeller')
+    parser.add_argument('--motor',
+                        metavar='NAME',
+                        help='limits the search space to this motor')
+    parser.add_argument('--battery',
+                        metavar='NAME',
+                        help='limits the search space to this battery')
     args = parser.parse_args(args)
 
     generator = battery_motor_propeller_generator(True)
@@ -151,22 +113,36 @@ def run(args=None):
         num_of_combinations = args.limit
     print("Progress: ")
     for combination in generator:
-        file_object = open('fdm_input.txt', 'w')
-        file_object.write(generate_input(combination, args.propdata))
-        file_object.close()
+        if args.propeller and args.propeller != combination["Propeller.Name"]:
+            continue
+        if args.motor and args.motor != combination["Motor.Name"]:
+            continue
+        if args.battery and args.battery != combination["Battery.Name"]:
+            continue
+
+        combination['Aircraft.Mass'] = 0.347232355870562 + float(combination['Battery.WEIGHT']) + \
+            4 * float(combination['Motor.WEIGHT']) + 4 * float(combination['Propeller.Weight'])
+
+        with open('fdm_input.txt', 'w') as file_object:
+            file_object.write(generate_input(combination, args.propdata))
+
         combo_name = "fdm_output.txt"
         cmd = "{} < fdm_input.txt > {}".format(args.fdm, combo_name)
         os.system(cmd)
-        file_object = open(combo_name, 'r')
-        # read intro comments
-        for rownum in range(3):
-            file_object.readline()
-        MV = file_object.readline().strip().split()
-        MP = file_object.readline().strip().split()
-        MC = file_object.readline().strip().split()
-        file_object.close()
 
-        # TODO: do better parsing and error checking
+        MV = None
+        MP = None
+        MC = None
+        with open(combo_name, 'r') as file_object:
+            for line in file_object.readlines():
+                line = line.strip()
+                if line.startswith("Max Volt  1"):
+                    MV = line.split()
+                elif line.startswith("Max Power 1"):
+                    MP = line.split()
+                elif line.startswith("Max Amps  1"):
+                    MC = line.split()
+
         try:
             for i in range(3, 11):
                 float(MV[i])
@@ -194,13 +170,11 @@ def run(args=None):
         row += MC[11] + "," + MC[12] + "," + MC[13] + "," + MC[14] + ","
 
         # estimations for full thrust flight
-        aircraft_weight = 0.347232355870562 + float(combination['Battery.WEIGHT']) + \
-            4 * float(combination['Motor.WEIGHT']) + 4 * float(combination['Propeller.Weight'])
         aircraft_thrust = 4 * float(MV[6])
-        aircraft_thrust2weight = aircraft_thrust / aircraft_weight
+        aircraft_thrust2weight = aircraft_thrust / combination['Aircraft.Mass']
         aircraft_flight_time = float(combination['Battery.CAPACITY']) * 0.8 / (4 * float(MV[9]))
 
-        row += str(aircraft_weight) + "," + str(aircraft_thrust) + "," + \
+        row += str(combination['Aircraft.Mass']) + "," + str(aircraft_thrust) + "," + \
             str(aircraft_thrust2weight) + "," + str(aircraft_flight_time) + "\n"
         res_file.write(row)
 
