@@ -47,7 +47,165 @@ def get_params(formulas: Dict[str, sympy.Expr], subs: Dict[str, float]) -> Dict[
     return result
 
 
+def generate_input(params: Dict[str, float]) -> str:
+    return f"""&aircraft_data
+   aircraft%cname          = 'UAV'      ! M  name of aircraft
+   aircraft%ctype          = 'SymCPS UAV Design' ! M  type of aircraft
+   aircraft%num_wings      = 0 ! M number of wings in aircraft
+   aircraft%mass          = { params['aircraft.mass'] }
+   aircraft%x_cm          = { params['aircraft.x_cm'] }
+   aircraft%y_cm          = { params['aircraft.y_cm'] }
+   aircraft%z_cm          = { params['aircraft.z_cm'] }
+   aircraft%x_fuse          = { params['aircraft.x_cm'] }
+   aircraft%y_fuse          = { params['aircraft.y_cm'] }
+   aircraft%z_fuse          = { params['aircraft.z_cm'] }
+   aircraft%X_fuseuu      = { params['aircraft.X_fuseuu'] }
+   aircraft%Y_fusevv      = { params['aircraft.Y_fusevv'] }
+   aircraft%Z_fuseww      = { params['aircraft.Z_fuseww'] }
+   aircraft%Ixx           = { params['aircraft.Ixx'] }
+   aircraft%Iyy           = { params['aircraft.Iyy'] }
+   aircraft%Izz           = { params['aircraft.Izz'] }
+   aircraft%Ixy           = { params['aircraft.Ixy'] }
+   aircraft%Ixz           = { params['aircraft.Ixz'] }
+   aircraft%Iyz           = { params['aircraft.Iyz'] }
+   aircraft%uc_initial     = 0.4d0, 0.5d0, 0.6d0, 0.7d0 ! inputs for controls
+   aircraft%time           = 0.d0        ! initial time (default = 0.)
+   aircraft%dt             = 1.d-03      ! s  fixed time step
+   aircraft%dt_output      = 1.0d0       ! s  time between output lines
+   aircraft%time_end       = 1000.d0        ! s  end time 
+   aircraft%Unwind         = 0.d0        ! North wind speed in world frame
+   aircraft%Vewind         = 0.d0        ! East wind speed in  world frame
+   aircraft%Wdwind         = 0.d0        ! Down wind speed in world frame
+   aircraft%debug          = 0           ! verbose printouts from fderiv
+   aircraft%num_propellers  = 4
+   aircraft%num_batteries   = 1
+   aircraft%i_analysis_type = 3 
+   aircraft%x_initial      = 0.d0, 0.d0, 0.d0, 0.d0, 0.d0, 0.d0, 1.d0, 0.d0, 0.d0, 0.d0, 0.d0, 0.d0, 0.d0
+   aircraft%uc_initial     = 0.5d0, 0.5d0, 0.5d0, 0.5d0
+
+!   Propeller(1 uses components named Prop_1, Motor_1, ESC_1
+   propeller(1)%cname   = 'apc_propellers_16x4EP' 
+   propeller(1)%ctype   = 'MR'
+   propeller(1)%prop_fname   = 'uav_analysis/data/propeller/PER3_16x4E.dat' 
+   propeller(1)%x   = { params['Prop_1_x'] }
+   propeller(1)%y   = { params['Prop_1_y'] }
+   propeller(1)%z   = { params['Prop_1_z'] }
+   propeller(1)%nx   = -0.0
+   propeller(1)%ny   = -0.0
+   propeller(1)%nz   = -1.0
+   propeller(1)%radius   = 203.2 
+   propeller(1)%Ir      = 757.2630016 
+   propeller(1)%motor_fname  = '../../Motors/MN4012KV400' 
+   propeller(1)%KV   = 400.0 
+   propeller(1)%KT   = 0.0238732414637843 
+   propeller(1)%I_max   = 25.0 
+   propeller(1)%I_idle   = 1.0 
+   propeller(1)%maxpower   = 750.0 
+   propeller(1)%Rw   = 0.075 
+   propeller(1)%icontrol   = 2 
+   propeller(1)%ibattery   = 1 
+!   propeller(1)%ibattery   = 1 
+   propeller(1)%spin   = -1
+
+!   Propeller(2 uses components named Prop_0, Motor_0, ESC_0
+   propeller(2)%cname   = 'apc_propellers_16x4E' 
+   propeller(2)%ctype   = 'MR'
+   propeller(2)%prop_fname   = 'uav_analysis/data/propeller/PER3_16x4E.dat' 
+   propeller(2)%x   = { params['Prop_0_x'] }
+   propeller(2)%y   = { params['Prop_0_y'] }
+   propeller(2)%z   = { params['Prop_0_z'] }
+   propeller(2)%nx   = -0.0
+   propeller(2)%ny   = -0.0
+   propeller(2)%nz   = -1.0
+   propeller(2)%radius   = 203.2 
+   propeller(2)%Ir      = 757.2630016 
+   propeller(2)%motor_fname  = '../../Motors/MN4012KV400' 
+   propeller(2)%KV   = 400.0 
+   propeller(2)%KT   = 0.0238732414637843 
+   propeller(2)%I_max   = 25.0 
+   propeller(2)%I_idle   = 1.0 
+   propeller(2)%maxpower   = 750.0 
+   propeller(2)%Rw   = 0.075 
+   propeller(2)%icontrol   = 1 
+!   propeller(2)%ibattery   = 1 
+   propeller(2)%ibattery   = 1 
+   propeller(2)%spin   = 1
+
+!   Propeller(3 uses components named Prop_3, Motor_3, ESC_3
+   propeller(3)%cname   = 'apc_propellers_16x4EP' 
+   propeller(3)%ctype   = 'MR'
+   propeller(3)%prop_fname   = 'uav_analysis/data/propeller/PER3_16x4E.dat' 
+   propeller(3)%x   = { params['Prop_3_x'] }
+   propeller(3)%y   = { params['Prop_3_y'] }
+   propeller(3)%z   = { params['Prop_3_z'] }
+   propeller(3)%nx   = -0.0
+   propeller(3)%ny   = -0.0
+   propeller(3)%nz   = -1.0
+   propeller(3)%radius   = 203.2 
+   propeller(3)%Ir      = 757.2630016 
+   propeller(3)%motor_fname  = '../../Motors/MN4012KV400' 
+   propeller(3)%KV   = 400.0 
+   propeller(3)%KT   = 0.0238732414637843 
+   propeller(3)%I_max   = 25.0 
+   propeller(3)%I_idle   = 1.0 
+   propeller(3)%maxpower   = 750.0 
+   propeller(3)%Rw   = 0.075 
+   propeller(3)%icontrol   = 4 
+!   propeller(3)%ibattery   = 1 
+   propeller(3)%ibattery   = 1 
+   propeller(3)%spin   = -1
+
+!   Propeller(4 uses components named Prop_2, Motor_2, ESC_2
+   propeller(4)%cname   = 'apc_propellers_16x4E' 
+   propeller(4)%ctype   = 'MR'
+   propeller(4)%prop_fname   = 'uav_analysis/data/propeller/PER3_16x4E.dat' 
+   propeller(4)%x   = { params['Prop_2_x'] }
+   propeller(4)%y   = { params['Prop_2_y'] }
+   propeller(4)%z   = { params['Prop_2_z'] }
+   propeller(4)%nx   = -0.0
+   propeller(4)%ny   = -0.0
+   propeller(4)%nz   = -1.0
+   propeller(4)%radius   = 203.2 
+   propeller(4)%Ir      = 757.2630016 
+   propeller(4)%motor_fname  = '../../Motors/MN4012KV400' 
+   propeller(4)%KV   = 400.0 
+   propeller(4)%KT   = 0.0238732414637843 
+   propeller(4)%I_max   = 25.0 
+   propeller(4)%I_idle   = 1.0 
+   propeller(4)%maxpower   = 750.0 
+   propeller(4)%Rw   = 0.075 
+   propeller(4)%icontrol   = 3 
+!   propeller(4)%ibattery   = 1 
+   propeller(4)%ibattery   = 1 
+   propeller(4)%spin   = 1
+
+!   Battery(1) is component named: Battery_0
+   battery(1)%num_cells   = 6 
+   battery(1)%voltage   = 22.2 
+   battery(1)%capacity   = 6000 
+   battery(1)%C_Continuous   = 75 
+   battery(1)%C_Peak   = 150 
+
+!   Controls
+   control%i_flight_path = 5 
+   control%requested_lateral_speed = { params['Control.requested_lateral_speed'] } 
+   control%requested_vertical_speed = 0.0 
+   control%iaileron = 5 
+   control%iflap = 6 
+   control%Q_position = 1.0 
+   control%Q_velocity = 0.0 
+   control%Q_angular_velocity = 0.0 
+   control%Q_angles = 1.0 
+   control%R= { params['Control.R'] }
+/"""
+
+
 if __name__ == '__main__':
     formulas = get_formulas2()
-    subs = {'Length_0': 100, 'Length_1': 50, 'Length_8': 0, 'Length_9': 0}
-    print(get_params(formulas, subs))
+    subs = {'Length_0': 400, 'Length_1': 20, 'Length_8': 0, 'Length_9': 30}
+    params = get_params(formulas, subs)
+    params.update({
+        'Control.requested_lateral_speed': 35,
+        'Control.R': 100,
+    })
+    print(generate_input(params))

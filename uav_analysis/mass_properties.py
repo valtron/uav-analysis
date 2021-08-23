@@ -143,6 +143,9 @@ def quad_copter_fixed_bemp2(data: 'TestbenchData') -> Dict[str, sympy.Expr]:
         'Length_9',
     ])
 
+    for var in input_data.keys():
+        print(var, "min:", min(input_data[var]), "max:", max(input_data[var]))
+
     param = 0
 
     def C():

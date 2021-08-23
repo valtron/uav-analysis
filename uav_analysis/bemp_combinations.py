@@ -50,6 +50,17 @@ def is_reversible_propeller(name: str) -> bool:
     return name + 'P' in PROPELLERS
 
 
+def get_bemp_data(battery: str, motor: str, propeller: str) -> Dict[str, float]:
+    data = dict()
+    for key, val in BATTERIES[battery].items():
+        data['Battery.' + key] = val
+    for key, val in MOTORS[motor].items():
+        data['Motor.' + key] = val
+    for key, val in PROPELLERS[propeller].items():
+        data['Propeller.' + key] = val
+    return data
+
+
 def battery_motor_propeller_generator(reversible: bool = True):
     for battery in BATTERIES:
         for motor in MOTORS:
@@ -59,14 +70,7 @@ def battery_motor_propeller_generator(reversible: bool = True):
                 if MOTORS[motor]['SHAFT_DIAMETER'] > PROPELLERS[propeller]['SHAFT_DIAMETER']:
                     continue
 
-                data = dict()
-                for key, val in BATTERIES[battery].items():
-                    data['Battery.' + key] = val
-                for key, val in MOTORS[motor].items():
-                    data['Motor.' + key] = val
-                for key, val in PROPELLERS[propeller].items():
-                    data['Propeller.' + key] = val
-                yield data
+                yield get_bemp_data(battery, motor, propeller)
 
 
 def save_to_csv(generator, filename: str):
