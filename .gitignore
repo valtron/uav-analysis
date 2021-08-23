@@ -12,6 +12,7 @@ __pycache__
 *.DS_Store
 .~lock*
 *.out
+*.inp
 
 fdm_input.txt
 fdm_output.txt
