@@ -222,7 +222,12 @@ class TestbenchData():
 
             for field in fields:
                 if field in entry:
-                    result[field].append(float(entry[field]))
+                    try:
+                        entry_value = float(entry[field])
+                    except ValueError:
+                        entry_value = entry[field]
+
+                    result[field].append(entry_value)
                 else:
                     raise ValueError("Unknown field " + field)
 
