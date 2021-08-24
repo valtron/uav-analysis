@@ -54,6 +54,8 @@ def evaluate(expr: sympy.Expr, input_data: Dict[str, numpy.ndarray]) -> numpy.nd
             or expr.func == sympy.core.numbers.Pi
             or expr.func == sympy.core.numbers.Half):
         return numpy.full((), float(expr))
+    elif isinstance(expr, sympy.core.numbers.NaN):
+        raise ValueError("NaN value encountered, maybe from dividing by zero")
     elif expr.func == sympy.Symbol:
         return input_data[expr.name]
     elif expr.func == sympy.Add:

@@ -233,6 +233,92 @@ def quad_copter_fixed_bemp2(data: 'TestbenchData') -> Dict[str, sympy.Expr]:
     return result
 
 
+def hplane_fixed_bemp(data: 'TestbenchData') -> Dict[str, sympy.Expr]:
+    L1 = sympy.Symbol('Length_1')  # arm length
+    L8 = sympy.Symbol('Length_8')  # battery offset
+    L9 = sympy.Symbol('Length_9')  # battery offset
+
+    input_data = data.get_tables([
+        'Length_1',
+        'Length_8',
+        'Length_9',
+    ])
+
+    for var in input_data.keys():
+        print(var, "min:", min(input_data[var]), "max:", max(input_data[var]))
+
+    param = 0
+
+    def C():
+        nonlocal param
+        param += 1
+        return sympy.Symbol("param_" + str(param))
+
+    result = dict()
+
+    def fit(name, expr):
+        if data.has_field(name):
+            subs, error = approximate(expr, input_data, data.get_table(name))
+            print("INFO:", name, "approx error", error)
+            result[name] = expr.subs(subs)
+        else:
+            result[name] = 0.0
+            print("WARNING: missing data for", name)
+        return result[name]
+
+    mass = fit('aircraft.mass', C() + C() * L1)
+
+    x_cm = fit('aircraft.x_cm', (C() + C() * L1 + C() * L8 + C() * L9) / mass)
+    y_cm = fit('aircraft.y_cm', (C() + C() * L8 + C() * L9) / mass)
+    z_cm = fit('aircraft.z_cm', (C() + C() * L1) / mass)
+
+    if True:
+        # we compensate for the center of gravity offset
+        fit('aircraft.Ixx', C() + C() * L1 + C() * L1 ** 2 + C() * L1 ** 3
+            + C() * L8 + C() * L9 + C() * L8 ** 2 + C() * L9 ** 2 + C() * L8 * L9
+            - mass * (y_cm ** 2 + z_cm ** 2))
+        fit('aircraft.Iyy', C() + C() * L1 + C() * L1 ** 2 + C() * L1 ** 3
+            + C() * L8 + C() * L9 + C() * L8 ** 2 + C() * L9 ** 2 + C() * L8 * L9
+            - mass * (x_cm ** 2 + z_cm ** 2))
+        fit('aircraft.Izz', C() + C() * L1 + C() * L1 ** 2 + C() * L1 ** 3
+            + C() * L8 + C() * L9 + C() * L8 ** 2 + C() * L9 ** 2 + C() * L8 * L9
+            - mass * (x_cm ** 2 + y_cm ** 2))
+        fit('aircraft.Ixy', C() + C() * L1 + C() * L1 ** 2 + C() * L1 ** 3
+            + C() * L8 + C() * L9 + C() * L8 ** 2 + C() * L9 ** 2 + C() * L8 * L9
+            + mass * x_cm * y_cm)
+        fit('aircraft.Ixz', C() + C() * L1 + C() * L1 ** 2 + C() * L1 ** 3
+            + C() * L8 + C() * L9 + C() * L8 ** 2 + C() * L9 ** 2 + C() * L8 * L9
+            + mass * x_cm * z_cm)
+        fit('aircraft.Iyz', C() + C() * L1 + C() * L1 ** 2 + C() * L1 ** 3
+            + C() * L8 + C() * L9 + C() * L8 ** 2 + C() * L9 ** 2 + C() * L8 * L9
+            + mass * y_cm * z_cm)
+
+    fit('aircraft.X_fuseuu', C() + C() * L1 + C() * L1 ** 2 + C() * L1 ** 3)
+    fit('aircraft.Y_fusevv', C() + C() * L1 + C() * L1 ** 2 + C() * L1 ** 3)
+    fit('aircraft.Z_fuseww', C() + C() * L1 + C() * L1 ** 2 + C() * L1 ** 3)
+
+    fit('Rear_Prop_L_x', C() - L1)
+    fit('Rear_Prop_L_y', C())
+    fit('Rear_Prop_L_z', C())
+    fit('Rear_Prop_R_x', C() - L1)
+    fit('Rear_Prop_R_y', C())
+    fit('Rear_Prop_R_z', C())
+    fit('Front_Prop_L_x', C() + L1)
+    fit('Front_Prop_L_y', C())
+    fit('Front_Prop_L_z', C())
+    fit('Front_Prop_R_x', C() + L1)
+    fit('Front_Prop_R_y', C())
+    fit('Front_Prop_R_z', C())
+    fit('Left_Wing_x', C())
+    fit('Left_Wing_y', C())
+    fit('Left_Wing_z', C())
+    fit('Right_Wing_x', C())
+    fit('Right_Wing_y', C())
+    fit('Right_Wing_z', C())
+
+    return result
+
+
 def quad_copter_batt_prop(data: 'TestbenchData') -> Dict[str, sympy.Expr]:
     L0 = sympy.Symbol('Length_0')  # arm length
     L1 = sympy.Symbol('Length_1')  # support leg
@@ -497,6 +583,7 @@ def run(args=None):
                             'quad-copter-fixed-bemp2',
                             'quad-copter-batt-prop',
                             'quad-copter-batt-prop-motor',
+                            'hplane-fixed-bemp',
                         ],
                         help='selects the analysis model')
     args = parser.parse_args(args)
@@ -505,6 +592,10 @@ def run(args=None):
     for file in args.file:
         print("Reading", file)
         data.load(file)
+
+    print("Number of valid runs:", len(data.get_table('Length_0')))
+    if len(data.get_table('Length_0')) == 0:
+        return
 
     print("Using model:", args.model)
     if args.model == 'quad-copter-fixed-bemp':
@@ -515,6 +606,8 @@ def run(args=None):
         formulas = quad_copter_batt_prop(data)
     elif args.model == 'quad-copter-batt-prop-motor':
         formulas = quad_copter_batt_prop_motor(data)
+    elif args.model == 'hplane-fixed-bemp':
+        formulas = hplane_fixed_bemp(data)
     else:
         print("Unknown analyis model:", args.model)
         return

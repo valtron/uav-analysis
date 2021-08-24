@@ -43,9 +43,10 @@ def parse_fortran_value(value: str) -> Any:
         return int(value)
 
 
-RE_BATTERY = re.compile('! *Battery\((\d+)\) is component named: ([a-zA-Z0-9_]*)')
+RE_BATTERY = re.compile('! *Battery *\((\d+)\) is component named: ([a-zA-Z0-9_]*)')
 RE_PROPELLER = re.compile(
-    '! *Propeller\((\d+) uses components named ([a-zA-Z0-9_]*), ([a-zA-Z0-9_]*), ([a-zA-Z0-9_]*)')
+    '! *Propeller *\((\d+) uses components named ([a-zA-Z0-9_]*), ([a-zA-Z0-9_]*), ([a-zA-Z0-9_]*)')
+RE_WING = re.compile('! *Wing *\((\d+)\) is component named: ([a-zA-Z0-9_]*)')
 
 
 def parse_fdm_input(lines: Union[str, List[str]]) -> Dict[str, Any]:
@@ -81,6 +82,11 @@ def parse_fdm_input(lines: Union[str, List[str]]) -> Dict[str, Any]:
             design['propeller(' + match[1] + ').propeller_component_key'] = match[2]
             design['propeller(' + match[1] + ').motor_component_key'] = match[3]
             design['propeller(' + match[1] + ').esc_component_key'] = match[4]
+            continue
+
+        match = RE_WING.match(line)
+        if match:
+            design['wing(' + match[1] + ').wing_component_key'] = match[2]
             continue
 
         pos = line.find('!')
@@ -179,6 +185,11 @@ class TestbenchData():
                     extra[val2 + "_x"] = entry[key2[:pos] + '.x']
                     extra[val2 + "_y"] = entry[key2[:pos] + '.y']
                     extra[val2 + "_z"] = entry[key2[:pos] + '.z']
+                elif key2.endswith('.wing_component_key'):
+                    pos = key2.rfind('.')
+                    extra[val2 + "_x"] = entry[key2[:pos] + '.x']
+                    extra[val2 + "_y"] = entry[key2[:pos] + '.y']
+                    extra[val2 + "_z"] = entry[key2[:pos] + '.z']
 
             entry.update(extra)
 
@@ -215,7 +226,7 @@ class TestbenchData():
         result = {field: [] for field in fields}
 
         for entry in self.byguid.values():
-            if entry['AnalysisError'] != 'False':
+            if entry['AnalysisError'] not in ['False', 'FALSE']:
                 continue
             if int(entry['Interferences']) != 0:
                 continue
