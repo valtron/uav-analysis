@@ -20,6 +20,7 @@ setup(
     name='uav-analysis',
     version='0.1',
     packages=['uav_analysis'],
+    package_data={'uav_analysis': ['data/*', 'data/**/*']},
     license='GPL 3',
     description="UAV analysis playground",
     long_description=open('README.md').read(),
