@@ -47,14 +47,14 @@ def evaluate(expr: sympy.Expr, input_data: Dict[str, numpy.ndarray]) -> numpy.nd
     if (isinstance(expr, float) or isinstance(expr, int)
             or expr.func == sympy.Float
             or expr.func == sympy.Integer
-            or expr.func == sympy.core.numbers.Rational
-            or expr.func == sympy.core.numbers.NegativeOne
-            or expr.func == sympy.core.numbers.Zero
-            or expr.func == sympy.core.numbers.One
-            or expr.func == sympy.core.numbers.Pi
-            or expr.func == sympy.core.numbers.Half):
+            or expr.func == sympy.numbers.Rational
+            or expr.func == sympy.numbers.NegativeOne
+            or expr.func == sympy.numbers.Zero
+            or expr.func == sympy.numbers.One
+            or expr.func == sympy.numbers.Pi
+            or expr.func == sympy.numbers.Half):
         return numpy.full((), float(expr))
-    elif isinstance(expr, sympy.core.numbers.NaN):
+    elif isinstance(expr, sympy.numbers.NaN):
         raise ValueError("NaN value encountered, maybe from dividing by zero")
     elif expr.func == sympy.Symbol:
         return input_data[expr.name]
@@ -96,7 +96,8 @@ def approximate(func: sympy.Expr, input_data: Dict[str, numpy.ndarray],
     class Function(Callable):
         def __call__(self, params: List[float]):
             assert len(params) == len(param_vars)
-            func2 = func.subs({var: params[idx] for idx, var in enumerate(param_vars)})
+            func2 = func.subs({var: params[idx]
+                               for idx, var in enumerate(param_vars)})
             output_data2 = evaluate(func2, input_data)
             return output_data2 - output_data
 
@@ -107,7 +108,8 @@ def approximate(func: sympy.Expr, input_data: Dict[str, numpy.ndarray],
         def __call__(self, params: List[float]):
             assert len(params) == len(param_vars)
             subs = {var: params[idx] for idx, var in enumerate(param_vars)}
-            diffs = [evaluate(diff.subs(subs), input_data) for diff in self.diffs]
+            diffs = [evaluate(diff.subs(subs), input_data)
+                     for diff in self.diffs]
             diffs = [numpy.broadcast_to(diff, shape) for diff in diffs]
             return numpy.array(diffs).transpose()
 

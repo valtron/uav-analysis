@@ -43,7 +43,8 @@ def parse_fortran_value(value: str) -> Any:
         return int(value)
 
 
-RE_BATTERY = re.compile('! *Battery *\((\d+)\) is component named: ([a-zA-Z0-9_]*)')
+RE_BATTERY = re.compile(
+    '! *Battery *\((\d+)\) is component named: ([a-zA-Z0-9_]*)')
 RE_PROPELLER = re.compile(
     '! *Propeller *\((\d+) uses components named ([a-zA-Z0-9_]*), ([a-zA-Z0-9_]*), ([a-zA-Z0-9_]*)')
 RE_WING = re.compile('! *Wing *\((\d+)\) is component named: ([a-zA-Z0-9_]*)')
@@ -74,13 +75,16 @@ def parse_fdm_input(lines: Union[str, List[str]]) -> Dict[str, Any]:
 
         match = RE_BATTERY.match(line)
         if match:
-            design['battery(' + match[1] + ').battery_component_key'] = match[2]
+            design['battery(' + match[1] + ').battery_component_key'] \
+                = match[2]
             continue
 
         match = RE_PROPELLER.match(line)
         if match:
-            design['propeller(' + match[1] + ').propeller_component_key'] = match[2]
-            design['propeller(' + match[1] + ').motor_component_key'] = match[3]
+            design['propeller(' + match[1] + ').propeller_component_key'] \
+                = match[2]
+            design['propeller(' + match[1] +
+                   ').motor_component_key'] = match[3]
             design['propeller(' + match[1] + ').esc_component_key'] = match[4]
             continue
 
@@ -150,23 +154,32 @@ class TestbenchData():
 
                             if key.startswith('Battery_'):
                                 components[key + "_Name"] = val
-                                components[key + "_Weight"] = float(BATTERIES[val]['WEIGHT'])
-                                components[key + "_Length"] = float(BATTERIES[val]['LENGTH'])
-                                components[key + "_Width"] = float(BATTERIES[val]['WIDTH'])
-                                components[key + "_Thickness"] = float(BATTERIES[val]['THICKNESS'])
+                                components[key + "_Weight"] \
+                                    = float(BATTERIES[val]['WEIGHT'])
+                                components[key + "_Length"] \
+                                    = float(BATTERIES[val]['LENGTH'])
+                                components[key + "_Width"] \
+                                    = float(BATTERIES[val]['WIDTH'])
+                                components[key + "_Thickness"] \
+                                    = float(BATTERIES[val]['THICKNESS'])
                             elif key.startswith('Prop_'):
                                 components[key + "_Name"] = val
-                                components[key + "_Weight"] = float(PROPELLERS[val]['Weight'])
-                                components[key + "_Diameter"] = float(PROPELLERS[val]['DIAMETER'])
-                                components[key +
-                                           "_Thickness"] = float(PROPELLERS[val]['HUB_THICKNESS'])
+                                components[key + "_Weight"] \
+                                    = float(PROPELLERS[val]['Weight'])
+                                components[key + "_Diameter"] \
+                                    = float(PROPELLERS[val]['DIAMETER'])
+                                components[key + "_Thickness"] \
+                                    = float(PROPELLERS[val]['HUB_THICKNESS'])
                             elif key.startswith('Motor_'):
                                 components[key + "_Name"] = val
-                                components[key + "_Weight"] = float(MOTORS[val]['WEIGHT'])
-                                components[key + "_Length"] = float(MOTORS[val]['LENGTH'])
-                                components[key +
-                                           "_TotalLength"] = float(MOTORS[val]['TOTAL_LENGTH'])
-                                components[key + "_CanLength"] = float(MOTORS[val]['CAN_LENGTH'])
+                                components[key + "_Weight"] \
+                                    = float(MOTORS[val]['WEIGHT'])
+                                components[key + "_Length"] \
+                                    = float(MOTORS[val]['LENGTH'])
+                                components[key + "_TotalLength"] \
+                                    = float(MOTORS[val]['TOTAL_LENGTH'])
+                                components[key + "_CanLength"] \
+                                    = float(MOTORS[val]['CAN_LENGTH'])
 
         # patch and lookup static values
         for entry in byguid.values():
