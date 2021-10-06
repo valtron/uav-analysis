@@ -14,7 +14,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from typing import List, Dict
+from typing import List, Dict, Any
 
 import math
 import numpy
@@ -26,7 +26,7 @@ from uav_analysis.func_approx import approximate
 
 def inertia_matrix(ixx, ixy, ixz, iyy, iyz, izz) -> numpy.ndarray:
     """
-    Takes 6 values or arrays of shape [*] and returns the inertia tensor 
+    Takes 6 values or arrays of shape [*] and returns the inertia tensor
     matrix of shape [*, 3, 3].
     """
     return numpy.array([[ixx, ixy, ixz], [ixy, iyy, iyz], [ixz, iyz, izz]])
@@ -38,7 +38,7 @@ def translate_inertia(
         offset: numpy.ndarray) -> numpy.ndarray:
     """
     Returns the moment of inertia matrix with respect to a different point from the
-    moment of inertia through the center of mass point. The inertia matrix must be 
+    moment of inertia through the center of mass point. The inertia matrix must be
     of shape [*, 3, 3], the mass must be of shape [*], and the offset be of shape
     [*, 3], the returned matrix is of shape [*, 3, 3]. If you would like to transfer
     the moment of inertia back to the center of mass, then use negative mass value.
@@ -328,6 +328,165 @@ def hplane_fixed_bemp(data: 'TestbenchData') -> Dict[str, sympy.Expr]:
     return result
 
 
+def quad_copter_batt(data: 'TestbenchData') -> Dict[str, sympy.Expr]:
+    L0 = sympy.Symbol('Length_0')  # arm length
+    L1 = sympy.Symbol('Length_1')  # support leg
+    L8 = sympy.Symbol('Length_8')  # battery position x
+    L9 = sympy.Symbol('Length_9')  # battery position y
+    B0 = sympy.Symbol('Battery_0_Weight')
+    B1 = sympy.Symbol('Battery_0_Length')
+    B2 = sympy.Symbol('Battery_0_Width')
+    B3 = sympy.Symbol('Battery_0_Thickness')
+
+    input_data = data.get_tables([
+        'Length_0',
+        'Length_1',
+        'Length_8',
+        'Length_9',
+        'Battery_0_Weight',
+        'Battery_0_Length',
+        'Battery_0_Width',
+        'Battery_0_Thickness',
+    ])
+
+    param = 0
+
+    def C():
+        nonlocal param
+        param += 1
+        return sympy.Symbol("param_" + str(param))
+
+    def powers(vars: List[Any], exp: int):
+        assert exp >= 1
+        result = [[]]
+        for _ in range(exp):
+            result2 = []
+            for elem1 in result:
+                next = max(elem1) if elem1 else 0
+                for elem2 in range(next, len(vars)):
+                    result2.append(elem1 + [elem2])
+            result = result2
+
+        sum = 0
+        for elem1 in result:
+            value = C()
+            for idx in elem1:
+                value = value * vars[idx]
+            sum = sum + value
+
+        return sum
+
+    result = dict()
+
+    def fit(name, expr):
+        if data.has_field(name):
+            subs, error = approximate(expr, input_data, data.get_table(name))
+            print("INFO:", name, "approx error", error)
+            result[name] = expr.subs(subs)
+        else:
+            result[name] = 0.0
+            print("WARNING: missing data for", name)
+        return result[name]
+
+    mass = fit('aircraft.mass', C() + C() * L0 + C() * L1 + B0)
+
+    x_cm = fit('aircraft.x_cm',
+               (C() + C() * B0 + C() * B0 * L8 + C() * B0 * L9) / mass)
+    y_cm = fit('aircraft.y_cm',
+               (C() + C() * B0 + C() * B0 * L8 + C() * B0 * L9) / mass)
+    z_cm = fit('aircraft.z_cm',
+               (C() + C() * L0 + C() * L1 + C() * L1 ** 2
+                   + C() * B0 + C() * B0 * B2) / mass)
+
+    # we compensate for the center of gravity offset
+    if True:
+        fit('aircraft.Ixx',
+            C()
+            + powers([L0, L1], 1)
+            + powers([L0, L1], 2)
+            + powers([L0, L1], 3)
+            + B0 * C()
+            + B0 * powers([B2, B3, L8, L9], 1)
+            + B0 * powers([B2, B3, L8, L9], 2)
+            - mass * (y_cm ** 2 + z_cm ** 2))
+
+        fit('aircraft.Iyy',
+            C()
+            + powers([L0, L1], 1)
+            + powers([L0, L1], 2)
+            + powers([L0, L1], 3)
+            + B0 * C()
+            + B0 * powers([B2, B3, L8, L9], 1)
+            + B0 * powers([B2, B3, L8, L9], 2)
+            - mass * (x_cm ** 2 + z_cm ** 2))
+
+        fit('aircraft.Izz',
+            C()
+            + powers([L0, L1], 1)
+            + powers([L0, L1], 2)
+            + powers([L0, L1], 3)
+            + B0 * C()
+            + B0 * powers([B2, B3, L8, L9], 1)
+            + B0 * powers([B2, B3, L8, L9], 2)
+            - mass * (x_cm ** 2 + y_cm ** 2))
+
+        fit('aircraft.Ixy',
+            C()
+            + B0 * C()
+            + B0 * powers([B2, B3, L8, L9], 1)
+            + B0 * powers([B2, B3, L8, L9], 2)
+            + mass * x_cm * y_cm)
+
+        fit('aircraft.Ixz',
+            C()
+            + B0 * C()
+            + B0 * powers([B2, B3, L8, L9], 1)
+            + B0 * powers([B2, B3, L8, L9], 2)
+            + mass * x_cm * z_cm)
+
+        fit('aircraft.Iyz',
+            C()
+            + B0 * C()
+            + B0 * powers([B2, B3, L8, L9], 1)
+            + B0 * powers([B2, B3, L8, L9], 2)
+            + mass * y_cm * z_cm)
+
+    if True:
+        fit('aircraft.X_fuseuu',
+            C()
+            + powers([L0, L1], 1)
+            + powers([B1, B2, B3], 1)
+            + powers([B1, B2, B3], 2))
+
+        fit('aircraft.Y_fusevv',
+            C()
+            + powers([L0, L1], 1)
+            + powers([B1, B2, B3], 1)
+            + powers([B1, B2, B3], 2))
+
+        fit('aircraft.Z_fuseww',
+            C()
+            + powers([L0, L1], 1)
+            + powers([B1, B2, B3], 1)
+            + powers([B1, B2, B3], 2))
+
+    if True:
+        fit('Prop_0_x', C() * L0)
+        fit('Prop_0_y', C() * L0)
+        fit('Prop_0_z', C())
+        fit('Prop_1_x', C() * L0)
+        fit('Prop_1_y', C() * L0)
+        fit('Prop_1_z', C())
+        fit('Prop_2_x', C() * L0)
+        fit('Prop_2_y', C() * L0)
+        fit('Prop_2_z', C())
+        fit('Prop_3_x', C() * L0)
+        fit('Prop_3_y', C() * L0)
+        fit('Prop_3_z', C())
+
+    return result
+
+
 def quad_copter_batt_prop(data: 'TestbenchData') -> Dict[str, sympy.Expr]:
     L0 = sympy.Symbol('Length_0')  # arm length
     L1 = sympy.Symbol('Length_1')  # support leg
@@ -382,8 +541,8 @@ def quad_copter_batt_prop(data: 'TestbenchData') -> Dict[str, sympy.Expr]:
                (C() + C() * B0 + C() * B0 * L8 + C() * B0 * L9) / mass)
     z_cm = fit('aircraft.z_cm',
                (C() + C() * L0 + C() * L1 + C() * L1 ** 2
-                   + C() * B0 + C() * B0 * B2
-                   + C() * P0 + C() * P0 * P2) / mass)
+                + C() * B0 + C() * B0 * B2
+                + C() * P0 + C() * P0 * P2) / mass)
 
     # we compensate for the center of gravity offset
     fit('aircraft.Ixx', C() + C() * L0 + C() * L1
@@ -397,7 +556,7 @@ def quad_copter_batt_prop(data: 'TestbenchData') -> Dict[str, sympy.Expr]:
         + C() * B0 * B1 * L8 + C() * B0 * B2 * L8 + C() * B0 * B3 * L8
         + C() * B0 * B1 * L9 + C() * B0 * B2 * L9 + C() * B0 * B3 * L9
         + C() * P0 + C() * P0 * P1 + C() * P0 * P2
-        + C() * P0 * P1 ** 2 + C() * P0 * P2 ** 2  + C() * P0 * P1 * P2
+        + C() * P0 * P1 ** 2 + C() * P0 * P2 ** 2 + C() * P0 * P1 * P2
         + C() * P0 * L0 + C() * P0 * L0 ** 2
         + C() * P0 * P1 * L0 + C() * P0 * P2 * L0
         - mass * (y_cm ** 2 + z_cm ** 2))
@@ -615,6 +774,7 @@ def run(args=None):
                         choices=[
                             'quad-copter-fixed-bemp',
                             'quad-copter-fixed-bemp2',
+                            'quad-copter-batt',
                             'quad-copter-batt-prop',
                             'quad-copter-batt-prop-motor',
                             'hplane-fixed-bemp',
@@ -636,6 +796,8 @@ def run(args=None):
         formulas = quad_copter_fixed_bemp(data)
     elif args.model == 'quad-copter-fixed-bemp2':
         formulas = quad_copter_fixed_bemp2(data)
+    elif args.model == 'quad-copter-batt':
+        formulas = quad_copter_batt(data)
     elif args.model == 'quad-copter-batt-prop':
         formulas = quad_copter_batt_prop(data)
     elif args.model == 'quad-copter-batt-prop-motor':
